@@ -1,26 +1,75 @@
 import 'package:assignment_1/screens/add_screen/widgets/custom_text_field.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
-class PlanTripPage extends StatefulWidget {
-  const PlanTripPage({super.key});
+class EditTripPage extends StatefulWidget {
+  final String tripId;
+  final String userId;
+
+  const EditTripPage({
+    super.key,
+    required this.tripId,
+    this.userId = 'demoUser',
+  });
 
   @override
-  State<PlanTripPage> createState() => _PlanTripPageState();
+  State<EditTripPage> createState() => _EditTripPageState();
 }
 
-class _PlanTripPageState extends State<PlanTripPage> {
+class _EditTripPageState extends State<EditTripPage> {
   final TextEditingController destinationController = TextEditingController();
   DateTime? startDate;
   DateTime? endDate;
   TimeOfDay? startTime;
   TimeOfDay? endTime;
 
-  final String _demoUsrId = 'demoUser';
   final _db = FirebaseFirestore.instance;
 
-  Future<void> _saveTrip() async {
+  @override
+  void initState() {
+    super.initState();
+    _fetchExistingData();
+  }
+
+  /// Fetch the existing trip details
+  Future<void> _fetchExistingData() async {
+    try {
+      final doc = await _db
+          .collection('users')
+          .doc(widget.userId)
+          .collection('trips')
+          .doc(widget.tripId)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data()!;
+        setState(() {
+          destinationController.text = data['destination'] ?? '';
+          if (data['startDate'] != null) {
+            startDate = (data['startDate'] as Timestamp).toDate();
+          }
+          if (data['endDate'] != null) {
+            endDate = (data['endDate'] as Timestamp).toDate();
+          }
+          if (data['startTime'] != null) {
+            final parts = data['startTime'].split(':');
+            startTime = TimeOfDay(
+                hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+          }
+          if (data['endTime'] != null) {
+            final parts = data['endTime'].split(':');
+            endTime = TimeOfDay(
+                hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching trip data: $e");
+    }
+  }
+
+  Future<void> _updateTrip() async {
     final dest = destinationController.text.trim();
 
     if (dest.isEmpty) {
@@ -30,7 +79,6 @@ class _PlanTripPageState extends State<PlanTripPage> {
       return;
     }
 
-    // Validate date range
     if (startDate != null && endDate != null && endDate!.isBefore(startDate!)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('End date must be after start date')),
@@ -39,7 +87,12 @@ class _PlanTripPageState extends State<PlanTripPage> {
     }
 
     try {
-      await _db.collection('users').doc(_demoUsrId).collection('trips').add({
+      await _db
+          .collection('users')
+          .doc(widget.userId)
+          .collection('trips')
+          .doc(widget.tripId)
+          .update({
         'destination': dest,
         'startDate': startDate != null ? Timestamp.fromDate(startDate!) : null,
         'endDate': endDate != null ? Timestamp.fromDate(endDate!) : null,
@@ -47,22 +100,13 @@ class _PlanTripPageState extends State<PlanTripPage> {
             ? '${startTime!.hour}:${startTime!.minute}'
             : null,
         'endTime':
-            endTime != null ? '${endTime!.hour}:${endTime!.minute}' : null,
-        'createdAt': FieldValue.serverTimestamp(),
+        endTime != null ? '${endTime!.hour}:${endTime!.minute}' : null,
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Trip created successfully')),
+        const SnackBar(content: Text('Trip updated successfully')),
       );
-
-      destinationController.clear();
-      setState(() {
-        startDate = null;
-        endDate = null;
-        startTime = null;
-        endTime = null;
-      });
       Navigator.of(context).pop();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -74,45 +118,37 @@ class _PlanTripPageState extends State<PlanTripPage> {
   Future<void> pickStartDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: startDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
-    if (picked != null) {
-      setState(() => startDate = picked);
-    }
+    if (picked != null) setState(() => startDate = picked);
   }
 
   Future<void> pickEndDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: startDate ?? DateTime.now(),
+      initialDate: endDate ?? startDate ?? DateTime.now(),
       firstDate: startDate ?? DateTime(2020),
       lastDate: DateTime(2100),
     );
-    if (picked != null) {
-      setState(() => endDate = picked);
-    }
+    if (picked != null) setState(() => endDate = picked);
   }
 
   Future<void> pickStartTime() async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(),
+      initialTime: startTime ?? TimeOfDay.now(),
     );
-    if (picked != null) {
-      setState(() => startTime = picked);
-    }
+    if (picked != null) setState(() => startTime = picked);
   }
 
   Future<void> pickEndTime() async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(),
+      initialTime: endTime ?? TimeOfDay.now(),
     );
-    if (picked != null) {
-      setState(() => endTime = picked);
-    }
+    if (picked != null) setState(() => endTime = picked);
   }
 
   @override
@@ -126,35 +162,33 @@ class _PlanTripPageState extends State<PlanTripPage> {
             const SizedBox(height: 40),
             const Center(
               child: Text(
-                "Plan a new trip",
+                "Edit Trip",
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(height: 10),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+            const Center(
+
               child: Text(
-                "Build an itinerary and map out your upcoming travel plans",
+                "Update your trip details below",
                 style: TextStyle(fontSize: 14, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
             ),
             const SizedBox(height: 20),
 
-            // Destination Input
             CustomTextField(
               controller: destinationController,
               hintText: "e.g., Paris, Hawaii, Japan",
               showLabel: true,
               labelText: 'Destination',
             ),
-
             const SizedBox(height: 16),
+
             const Text("Dates (optional)",
                 style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
 
-            // Start Date Button
             OutlinedButton.icon(
               onPressed: pickStartDate,
               icon: const Icon(Icons.calendar_today,
@@ -167,7 +201,6 @@ class _PlanTripPageState extends State<PlanTripPage> {
               ),
             ),
 
-            // Show End Date & Time Inputs only if Start Date is selected
             if (startDate != null) ...[
               const SizedBox(height: 16),
               OutlinedButton.icon(
@@ -226,9 +259,9 @@ class _PlanTripPageState extends State<PlanTripPage> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30)),
                 ),
-                onPressed: _saveTrip,
+                onPressed: _updateTrip,
                 child: const Text(
-                  "Save",
+                  "Update",
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,

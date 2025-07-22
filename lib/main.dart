@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Travel Planner',
       theme: buildTheme(),
-      home: MainShell(),
+      home: OnboardingSwipePage(),
     );
   }
 }

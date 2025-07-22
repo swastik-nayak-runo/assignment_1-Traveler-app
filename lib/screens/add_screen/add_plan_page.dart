@@ -1,6 +1,12 @@
+import 'package:assignment_1/screens/add_screen/widgets/activity_plan_tab.dart';
+import 'package:assignment_1/screens/add_screen/widgets/custom_text_field.dart';
+import 'package:assignment_1/screens/add_screen/widgets/lodging_plan_tab.dart';
+import 'package:assignment_1/screens/add_screen/widgets/restaurant_plan_tab.dart';
+import 'package:assignment_1/screens/add_screen/widgets/travel_plan_tab.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class AddPlanPage extends StatefulWidget {
   final String tripId;
@@ -28,7 +34,6 @@ class _AddPlanPageState extends State<AddPlanPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    print(widget.tripId);
     final baseTripRef = FirebaseFirestore.instance
         .collection('users')
         .doc(widget.userId)
@@ -49,23 +54,25 @@ class _AddPlanPageState extends State<AddPlanPage>
 
   // Expose these if child tabs need them (we'll wire up soon)
   CollectionReference<Map<String, dynamic>> get activityRef => _activityRef;
+
   CollectionReference<Map<String, dynamic>> get travelRef => _travelRef;
+
   CollectionReference<Map<String, dynamic>> get lodgingRef => _lodgingRef;
+
   CollectionReference<Map<String, dynamic>> get restaurantRef => _restaurantRef;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(100),
+        preferredSize: const Size.fromHeight(120),
         child: AppBar(
-          automaticallyImplyLeading: false, // removes default back button
-          backgroundColor: Colors.white,
+          automaticallyImplyLeading: false,
+          backgroundColor: Colors.transparent,
           elevation: 0,
           flexibleSpace: Padding(
-            padding: const EdgeInsets.only(top: 40, left: 16, right: 16, bottom: 12),
+            padding:
+                const EdgeInsets.only(top: 40, left: 16, right: 16, bottom: 12),
             child: FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
               future: FirebaseFirestore.instance
                   .collection('users')
@@ -95,28 +102,73 @@ class _AddPlanPageState extends State<AddPlanPage>
                   );
                 }
 
-                if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
+                if (snapshot.hasError ||
+                    !snapshot.hasData ||
+                    !snapshot.data!.exists) {
                   return const Text("Plan your trip",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w400));
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w400));
                 }
 
                 final data = snapshot.data!.data();
                 final destination = data?['destination'] ?? 'Unknown';
 
+                final tsStart = data?['startDate'] as Timestamp?;
+                final tsEnd = data?['endDate'] as Timestamp?;
+
+                final startDt = tsStart?.toDate();
+                final endDt = tsEnd?.toDate();
+
+                final fmt = DateFormat('dd-MM-yyyy');
+                final startLabel = startDt != null
+                    ? fmt.format(startDt)
+                    : 'Start date not set';
+                final endLabel =
+                    endDt != null ? fmt.format(endDt) : 'End date not set';
+
                 return Padding(
                   padding: const EdgeInsets.only(top: 10.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end ,
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  child: Column(
                     children: [
-                      const Text(
-                        "Plan your trip for",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            "Plan your trip for",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Spacer(),
+                          Text(
+                            destination,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                      Spacer(),
-                      Text(
-                        destination,
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                        startLabel,
+                            style: const TextStyle(
+                              color: Colors.black,
+                            ),
+                          ),
+                          const Text(
+                            '→',
+                            style: TextStyle(color: Colors.black),
+                          ),
+                          Text(
+                            endLabel,
+                            style: const TextStyle(color: Colors.black),
+                          )
+                        ],
                       ),
                     ],
                   ),
@@ -127,8 +179,10 @@ class _AddPlanPageState extends State<AddPlanPage>
           bottom: TabBar(
             controller: _tabController,
             labelColor: Colors.black,
-            unselectedLabelColor: Colors.grey,
+            unselectedLabelColor: Colors.black,
             indicatorColor: Colors.black,
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.normal),
             tabs: const [
               Tab(text: 'Activity'),
               Tab(text: 'Travel'),
@@ -138,274 +192,15 @@ class _AddPlanPageState extends State<AddPlanPage>
           ),
         ),
       ),
-
       body: TabBarView(
         controller: _tabController,
         children: [
-          _ActivityPlansTab(ref: _activityRef),
-          _TravelPlansTab(ref: _travelRef),
-          _LodgingPlansTab(ref: _lodgingRef),
-          _RestaurantPlansTab(ref: _restaurantRef),
+          ActivityPlansTab(ref: _activityRef),
+          TravelPlansTab(ref: _travelRef),
+          LodgingPlansTab(ref: _lodgingRef),
+          RestaurantPlansTab(ref: _restaurantRef),
         ],
       ),
     );
-  }
-}
-class _ActivityPlansTab extends StatefulWidget {
-  final CollectionReference<Map<String, dynamic>> ref;
-  const _ActivityPlansTab({required this.ref});
-
-  @override
-  State<_ActivityPlansTab> createState() => _ActivityPlansTabState();
-}
-
-class _ActivityPlansTabState extends State<_ActivityPlansTab> {
-  final _formKey = GlobalKey<FormState>();
-
-  final TextEditingController eventNameController = TextEditingController();
-  final TextEditingController venueController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController websiteController = TextEditingController();
-
-  DateTime? startDate;
-  DateTime? endDate;
-  TimeOfDay? startTime;
-  TimeOfDay? endTime;
-
-  Future<void> pickStartDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) setState(() => startDate = picked);
-  }
-
-  Future<void> pickEndDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: startDate ?? DateTime.now(),
-      firstDate: startDate ?? DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) setState(() => endDate = picked);
-  }
-
-  Future<void> pickStartTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    if (picked != null) setState(() => startTime = picked);
-  }
-
-  Future<void> pickEndTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    if (picked != null) setState(() => endTime = picked);
-  }
-
-  Future<void> saveActivity() async {
-    if (eventNameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Event name is required")),
-      );
-      return;
-    }
-
-    try {
-      await widget.ref.add({
-        'eventName': eventNameController.text.trim(),
-        'venue': venueController.text.trim().isNotEmpty ? venueController.text.trim() : null,
-        'phone': phoneController.text.trim().isNotEmpty ? phoneController.text.trim() : null,
-        'email': emailController.text.trim().isNotEmpty ? emailController.text.trim() : null,
-        'website': websiteController.text.trim().isNotEmpty ? websiteController.text.trim() : null,
-        'startDate': startDate != null ? Timestamp.fromDate(startDate!) : null,
-        'endDate': endDate != null ? Timestamp.fromDate(endDate!) : null,
-        'startTime': startTime != null ? '${startTime!.hour}:${startTime!.minute}' : null,
-        'endTime': endTime != null ? '${endTime!.hour}:${endTime!.minute}' : null,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Activity added successfully")),
-      );
-
-      _formKey.currentState?.reset();
-      setState(() {
-        startDate = null;
-        endDate = null;
-        startTime = null;
-        endTime = null;
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: eventNameController,
-              decoration: const InputDecoration(
-                labelText: "Event Name *",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            const Text("Start (optional)"),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: pickStartDate,
-                    child: Text(startDate == null
-                        ? "Start Date"
-                        : startDate!.toString().split(' ')[0]),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: pickStartTime,
-                    child: Text(startTime == null
-                        ? "Start Time"
-                        : startTime!.format(context)),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            const Text("End (optional)"),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: pickEndDate,
-                    child: Text(endDate == null
-                        ? "End Date"
-                        : endDate!.toString().split(' ')[0]),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: pickEndTime,
-                    child: Text(endTime == null
-                        ? "End Time"
-                        : endTime!.format(context)),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: venueController,
-              decoration: const InputDecoration(
-                labelText: "Venue / Address (optional)",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: phoneController,
-              decoration: const InputDecoration(
-                labelText: "Phone (optional)",
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(
-                labelText: "Email (optional)",
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: websiteController,
-              decoration: const InputDecoration(
-                labelText: "Website (optional)",
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.url,
-            ),
-            const SizedBox(height: 24),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: saveActivity,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-                child: const Text(
-                  "Save Activity",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-
-class _TravelPlansTab extends StatelessWidget {
-  final CollectionReference<Map<String, dynamic>> ref;
-  const _TravelPlansTab({required this.ref});
-
-  @override
-  Widget build(BuildContext context) {
-    return Placeholder(
-      );
-  }
-}
-
-class _LodgingPlansTab extends StatelessWidget {
-  final CollectionReference<Map<String, dynamic>> ref;
-  const _LodgingPlansTab({required this.ref});
-
-  @override
-  Widget build(BuildContext context) {
-    return Placeholder();
-  }
-}
-
-class _RestaurantPlansTab extends StatelessWidget {
-  final CollectionReference<Map<String, dynamic>> ref;
-  const _RestaurantPlansTab({required this.ref});
-
-  @override
-  Widget build(BuildContext context) {
-    return Placeholder();
   }
 }

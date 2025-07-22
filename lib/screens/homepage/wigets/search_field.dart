@@ -6,11 +6,11 @@ class SearchField extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Expanded(
+          const Expanded(
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'Search',
-                prefixIcon: const Icon(Icons.search),
+                hintText: 'Search for nearby Restros, Lodgings, Travel Destinations',
+                prefixIcon: Icon(Icons.search),
               ),
             ),
           ),

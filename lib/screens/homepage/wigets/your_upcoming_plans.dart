@@ -1,4 +1,8 @@
+import 'package:assignment_1/screens/add_screen/add_page.dart';
 import 'package:assignment_1/screens/add_screen/add_plan_page.dart';
+import 'package:assignment_1/screens/edit%20screens/edit_trip_page.dart';
+import 'package:assignment_1/screens/trips/trips_detail_page.dart';
+import 'package:assignment_1/widgets/custom_Alert_box.dart';
 import 'package:assignment_1/widgets/custome_shimmer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +20,8 @@ class UpcomingTripsList extends StatelessWidget {
             .collection('users')
             .doc('demoUser')
             .collection('trips')
-            .orderBy('startDate', descending: false) // server-side sort (optional but good)
+            .orderBy('startDate',
+                descending: false) // server-side sort (optional but good)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -40,7 +45,8 @@ class UpcomingTripsList extends StatelessWidget {
             final ts = data['startDate'] as Timestamp?;
             if (ts == null) return false; // no start date -> exclude
             final start = ts.toDate();
-            return !start.isBefore(today); // true if start >= today
+            return !start.isBefore(today) &&
+                !start.isAtSameMomentAs(today); // true if start >= today
           }).toList();
 
           // nothing upcoming
@@ -50,12 +56,14 @@ class UpcomingTripsList extends StatelessWidget {
 
           // sort locally just in case (server sort may be missing/null entries)
           filtered.sort((a, b) {
-            final aStart = ((a.data() as Map<String, dynamic>)['startDate'] as Timestamp).toDate();
-            final bStart = ((b.data() as Map<String, dynamic>)['startDate'] as Timestamp).toDate();
+            final aStart =
+                ((a.data() as Map<String, dynamic>)['startDate'] as Timestamp)
+                    .toDate();
+            final bStart =
+                ((b.data() as Map<String, dynamic>)['startDate'] as Timestamp)
+                    .toDate();
             return aStart.compareTo(bStart);
           });
-
-          final dateFormat = DateFormat('dd-MM-yyyy');
 
           return ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -63,141 +71,7 @@ class UpcomingTripsList extends StatelessWidget {
             itemCount: filtered.length,
             separatorBuilder: (_, __) => const SizedBox(width: 16),
             itemBuilder: (context, index) {
-              final tripSnap = filtered[index];
-              final trip = tripSnap.data() as Map<String, dynamic>;
-
-              final destination = trip['destination'] ?? 'Unknown';
-
-              final startTs = trip['startDate'] as Timestamp?;
-              final endTs = trip['endDate'] as Timestamp?;
-
-              final startDate = startTs?.toDate();
-              final endDate = endTs?.toDate();
-
-              final startTimeRaw = trip['startTime']; // from Firestore
-              final endTimeRaw = trip['endTime'];
-
-              String startTime = (startTimeRaw == null || (startTimeRaw as String).isEmpty)
-                  ? 'null'
-                  : startTimeRaw;
-              String endTime = (endTimeRaw == null || (endTimeRaw as String).isEmpty)
-                  ? 'null'
-                  : endTimeRaw;
-
-              String dateLabel;
-              if (startDate != null && endDate != null) {
-                dateLabel =
-                "${DateFormat('dd-MM-yyyy').format(startDate)} ($startTime) → ${DateFormat('dd-MM-yyyy').format(endDate)} ($endTime)";
-              } else if (startDate != null) {
-                dateLabel =
-                "${DateFormat('dd-MM-yyyy').format(startDate)} ($startTime)";
-              } else {
-                dateLabel = "Dates not set";
-              }
-
-              return Container(
-                width: MediaQuery.of(context).size.width - 50,
-                padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.black87,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      // Top row: destination + open icon
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Destination + dates
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                destination,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 22,
-                                ),
-                              ),
-                              Text(
-                                dateLabel,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                          InkWell(
-                            onTap: () {
-                              // TODO: open trip details page
-                            },
-                            child: const Icon(
-                              Icons.open_in_new_rounded,
-                              size: 30,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Bottom row: edit / add plan
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          InkWell(
-                            onTap: () {
-                              // TODO: edit trip info
-                            },
-                            child: const Icon(
-                              Icons.edit,
-                              size: 16,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          const Text(
-                            'Edit Trip Info',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const Spacer(),
-                          InkWell(
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => AddPlanPage(tripId: tripSnap.id),
-                                ),
-                              );
-                            },
-                            child: const Icon(
-                              Icons.add,
-                              size: 23,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          const Text(
-                            'Add your trip plan',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
+              return TripCard(tripSnap: filtered[index]);
             },
           );
         },
@@ -212,13 +86,28 @@ class _NoTripsMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline_sharp, size: 30),
-          SizedBox(height: 4),
-          Text("You have no upcoming trips"),
+          const Icon(Icons.error_outline_sharp, size: 30),
+          const SizedBox(height: 4),
+          const Text("You have no upcoming trips"),
+          const SizedBox(
+            height: 4,
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => PlanTripPage()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black
+            ),
+            child: const Text('Add Your Trip', style: TextStyle(color: Colors.white),),
+          )
         ],
       ),
     );
@@ -235,7 +124,8 @@ class UpcomingTripsShimmer extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: 3, // show 3 shimmer cards
+        itemCount: 3,
+        // show 3 shimmer cards
         separatorBuilder: (_, __) => const SizedBox(width: 16),
         itemBuilder: (context, index) {
           return Container(
@@ -254,19 +144,20 @@ class UpcomingTripsShimmer extends StatelessWidget {
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children:  [
+                      children: [
                         CustomShimmer(width: 120, height: 18), // destination
                         SizedBox(height: 8),
                         CustomShimmer(width: 100, height: 14), // date
                       ],
                     ),
-                     CustomShimmer(width: 30, height: 30, borderRadius: 15), // icon
+                    CustomShimmer(width: 30, height: 30, borderRadius: 15),
+                    // icon
                   ],
                 ),
-                 SizedBox(height: 16),
+                SizedBox(height: 16),
                 // Bottom row
                 Row(
-                  children:  [
+                  children: [
                     CustomShimmer(width: 16, height: 16, borderRadius: 4),
                     SizedBox(width: 8),
                     CustomShimmer(width: 80, height: 14),
@@ -280,6 +171,221 @@ class UpcomingTripsShimmer extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class TripCard extends StatefulWidget {
+  final DocumentSnapshot tripSnap;
+
+  const TripCard({super.key, required this.tripSnap});
+
+  @override
+  State<TripCard> createState() => _TripCardState();
+}
+
+class _TripCardState extends State<TripCard> {
+  bool isDeleting = false;
+
+  Future<void> _deleteTrip(BuildContext context) async {
+    final trip = widget.tripSnap.data() as Map<String, dynamic>;
+    final destination = trip['destination'] ?? 'Unknown';
+
+    final confirmed =
+        await showConfirmDeleteDialog(context, destination, "Trip");
+    if (confirmed != true) return;
+
+    setState(() => isDeleting = true); // Start shimmer
+
+    final db = FirebaseFirestore.instance;
+    final tripRef = db
+        .collection('users')
+        .doc('demoUser')
+        .collection('trips')
+        .doc(widget.tripSnap.id);
+
+    const subColls = [
+      'activityPlans',
+      'travelPlans',
+      'lodgingPlans',
+      'restaurantPlans',
+    ];
+
+    try {
+      // Delete subcollections
+      for (final name in subColls) {
+        final q = await tripRef.collection(name).get();
+        for (final doc in q.docs) {
+          await doc.reference.delete();
+        }
+      }
+
+      await tripRef.delete();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Trip "$destination" deleted')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete "$destination": $e')),
+      );
+    } finally {
+      if (mounted) setState(() => isDeleting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (isDeleting) {
+      // Show shimmer instead of trip card
+      return Container(
+        width: MediaQuery.of(context).size.width - 50,
+        child: const CustomShimmer(width: double.infinity, height: 120),
+      );
+    }
+
+    final trip = widget.tripSnap.data() as Map<String, dynamic>;
+    final destination = trip['destination'] ?? 'Unknown';
+    final startTs = trip['startDate'] as Timestamp?;
+    final endTs = trip['endDate'] as Timestamp?;
+
+    final startDate = startTs?.toDate();
+    final endDate = endTs?.toDate();
+
+    final startTimeRaw = trip['startTime'];
+    final endTimeRaw = trip['endTime'];
+
+    String startTime =
+        (startTimeRaw == null || (startTimeRaw as String).isEmpty)
+            ? '12:01 AM'
+            : startTimeRaw;
+    String endTime = (endTimeRaw == null || (endTimeRaw as String).isEmpty)
+        ? '11:59 PM'
+        : endTimeRaw;
+
+    String dateLabel;
+    if (startDate != null && endDate != null) {
+      dateLabel =
+          "${DateFormat('dd-MM-yyyy').format(startDate)} ($startTime) → ${DateFormat('dd-MM-yyyy').format(endDate)} ($endTime)";
+    } else if (startDate != null) {
+      dateLabel = "${DateFormat('dd-MM-yyyy').format(startDate)} ($startTime)";
+    } else {
+      dateLabel = "Dates not set";
+    }
+
+    return Container(
+      width: MediaQuery.of(context).size.width - 50,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black87,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SizedBox(
+                width: 270,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      destination,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                      ),
+                    ),
+                    Text(
+                      dateLabel,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Row(
+                children: [
+                  InkWell(
+                    onTap: () => _deleteTrip(context),
+                    child: const Icon(
+                      Icons.delete_outline,
+                      size: 23,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  InkWell(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            TripDetailPage(tripId: widget.tripSnap.id),
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.open_in_new_rounded,
+                      size: 23,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              InkWell(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          EditTripPage(tripId: widget.tripSnap.id),
+                    ),
+                  );
+                },
+                child: const Row(
+                  children: [
+                    Icon(Icons.edit, size: 16, color: Colors.white),
+                    SizedBox(width: 5),
+                    Text(
+                      'Edit Trip Info',
+                      style: TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              InkWell(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => AddPlanPage(tripId: widget.tripSnap.id),
+                    ),
+                  );
+                },
+                child: const Row(
+                  children: [
+                    Icon(Icons.add, size: 23, color: Colors.white),
+                    SizedBox(width: 5),
+                    Text('Add Trip Plan',
+                        style: TextStyle(color: Colors.white, fontSize: 14)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

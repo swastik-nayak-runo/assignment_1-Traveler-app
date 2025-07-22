@@ -16,13 +16,13 @@ class CustomShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
+      baseColor: Colors.black45,
+      highlightColor: Colors.black26,
       child: Container(
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.black26,
           borderRadius: BorderRadius.circular(borderRadius),
         ),
       ),

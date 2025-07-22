@@ -12,7 +12,7 @@ class CategoryGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16,0),
+      padding: const EdgeInsets.fromLTRB(0, 16, 0,0),
       child: GridView.builder(
         itemCount: _items.length,
         shrinkWrap: true,
@@ -21,7 +21,7 @@ class CategoryGrid extends StatelessWidget {
           crossAxisCount: 4,
           mainAxisSpacing: 4,
           crossAxisSpacing: 4,
-          childAspectRatio: 0.9,
+          childAspectRatio: 1,
         ),
         itemBuilder: (_, i) => CatTile(item: _items[i]),
       ),
