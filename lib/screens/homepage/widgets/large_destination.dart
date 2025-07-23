@@ -4,13 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 
 class LargeDestinationCard extends StatelessWidget {
   final String title;
-  final String price;
   final String description;
   final String location;
 
   const LargeDestinationCard({
     required this.title,
-    required this.price,
     required this.description,
     required this.location,
   });
@@ -24,9 +22,13 @@ class LargeDestinationCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(
-              "assets/images/taj mahal.png",
-              fit: BoxFit.cover,
+
+            Container(
+              color: Colors.black,
+              child: Image.asset(
+                "assets/images/charminar.png",
+                fit: BoxFit.cover,
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(24),

@@ -50,6 +50,7 @@ class _TripsPageState extends State<TripsPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text("My Trips",
             style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,

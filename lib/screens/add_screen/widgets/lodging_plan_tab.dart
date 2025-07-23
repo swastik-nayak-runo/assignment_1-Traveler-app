@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 
 class LodgingPlansTab extends StatefulWidget {
   final CollectionReference<Map<String, dynamic>> ref;
+  final VoidCallback? onPLanSaved;
 
-  const LodgingPlansTab({required this.ref});
+  const LodgingPlansTab({required this.ref, this.onPLanSaved});
 
   @override
   State<LodgingPlansTab> createState() => LodgingPlansTabState();
@@ -108,7 +109,7 @@ class LodgingPlansTabState extends State<LodgingPlansTab> {
         checkOutTime = null;
       });
 
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: $e")),
@@ -125,7 +126,14 @@ class LodgingPlansTabState extends State<LodgingPlansTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Check-in *"),
+            CustomTextField(
+              controller: lodgingNameController,
+              hintText: 'Hotel / Airbnb name',
+              showLabel: true,
+              labelText: 'Lodging Name (optional)',
+            ),
+            const SizedBox(height: 16),
+            const Text("Check-in*"),
             Row(
               children: [
                 Expanded(
@@ -154,7 +162,7 @@ class LodgingPlansTabState extends State<LodgingPlansTab> {
               ],
             ),
             const SizedBox(height: 16),
-            const Text("Check-out *"),
+            const Text("Check-out*"),
             Row(
               children: [
                 Expanded(
@@ -181,13 +189,6 @@ class LodgingPlansTabState extends State<LodgingPlansTab> {
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 16),
-            CustomTextField(
-              controller: lodgingNameController,
-              hintText: 'Hotel / Airbnb name',
-              showLabel: true,
-              labelText: 'Lodging Name (optional)',
             ),
             const SizedBox(height: 16),
             CustomTextField(

@@ -1,9 +1,10 @@
-import 'package:assignment_1/screens/homepage/wigets/your_upcoming_plans.dart';
+import 'package:assignment_1/screens/homepage/widgets/your_upcoming_plans.dart';
+import 'package:assignment_1/widgets/bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:assignment_1/screens/homepage/wigets/category_grid.dart';
-import 'package:assignment_1/screens/homepage/wigets/home_header.dart';
-import 'package:assignment_1/screens/homepage/wigets/large_destination.dart';
-import 'package:assignment_1/screens/homepage/wigets/search_field.dart';
+import 'package:assignment_1/screens/homepage/widgets/category_grid.dart';
+import 'package:assignment_1/screens/homepage/widgets/home_header.dart';
+import 'package:assignment_1/screens/homepage/widgets/large_destination.dart';
+import 'package:assignment_1/screens/homepage/widgets/search_field.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -33,7 +34,9 @@ class HomePage extends StatelessWidget {
                           ?.copyWith(fontWeight: FontWeight.w600),
                     ),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => MainShell(index: 2,))
+                      ),
                       child: const Text(
                         'See All',
                         style: TextStyle(color: Colors.black),
@@ -62,8 +65,7 @@ class HomePage extends StatelessWidget {
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
                 child: LargeDestinationCard(
-                  title: 'Taj Mahal',
-                  price: ' \$ 18.45',
+                  title: 'Charminar',
                   description:
                   'One of the 7 wonders of the world, famous mausoleum in Agra.',
                   location: 'Agra, India',

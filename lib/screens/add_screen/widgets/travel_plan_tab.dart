@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 
 class TravelPlansTab extends StatefulWidget {
   final CollectionReference<Map<String, dynamic>> ref;
+  final VoidCallback? onPLanSaved;
 
-  const TravelPlansTab({required this.ref});
+  const TravelPlansTab({required this.ref, this.onPLanSaved});
 
   @override
   State<TravelPlansTab> createState() => TravelPlansTabState();
@@ -113,7 +114,7 @@ class TravelPlansTabState extends State<TravelPlansTab> {
         arrivalTime = null;
       });
 
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
 
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

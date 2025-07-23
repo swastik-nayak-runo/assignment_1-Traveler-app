@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 
-Future<bool?> showConfirmDeleteDialog(BuildContext context, String tripName, String label) {
+Future<bool?> showConfirmDeleteDialog(
+    BuildContext context,
+    String thingName,    // e.g. "Eiffel Tower Tour"
+    String label,        // e.g. "Activity Plan"
+    ) {
   return showDialog<bool>(
     context: context,
-    barrierDismissible: true, // user must choose
+    barrierDismissible: true,
     builder: (ctx) {
       return AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: Colors.white,
-        title:  Text(
+        title: Text(
           "Delete $label?",
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         content: Text(
-          "Do you want to delete the trip \"$tripName\" while you can still edit it?",
+          'Do you want to delete "$thingName"? You can still edit it instead.',
         ),
         actions: [
           TextButton(
@@ -31,7 +35,8 @@ Future<bool?> showConfirmDeleteDialog(BuildContext context, String tripName, Str
               ),
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text("Yes, delete the trip", style: TextStyle(color: Colors.white),),
+            child: Text("Yes, delete $label",
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       );

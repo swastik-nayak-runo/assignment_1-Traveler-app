@@ -1,10 +1,12 @@
 import 'package:assignment_1/screens/add_screen/widgets/custom_text_field.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+
 class ActivityPlansTab extends StatefulWidget {
   final CollectionReference<Map<String, dynamic>> ref;
+  final VoidCallback? onPLanSaved;
 
-  const ActivityPlansTab({required this.ref});
+  const ActivityPlansTab({required this.ref, this.onPLanSaved});
 
   @override
   State<ActivityPlansTab> createState() => ActivityPlansTabState();
@@ -89,7 +91,7 @@ class ActivityPlansTabState extends State<ActivityPlansTab> {
             ? '${startTime!.hour}:${startTime!.minute}'
             : null,
         'endTime':
-        endTime != null ? '${endTime!.hour}:${endTime!.minute}' : null,
+            endTime != null ? '${endTime!.hour}:${endTime!.minute}' : null,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -105,7 +107,7 @@ class ActivityPlansTabState extends State<ActivityPlansTab> {
         startTime = null;
         endTime = null;
       });
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: $e")),
@@ -212,7 +214,9 @@ class ActivityPlansTabState extends State<ActivityPlansTab> {
               showLabel: true,
               labelText: 'Website (optional)',
             ),
-            SizedBox(height: 40,),
+            SizedBox(
+              height: 40,
+            ),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -232,7 +236,6 @@ class ActivityPlansTabState extends State<ActivityPlansTab> {
                 ),
               ),
             ),
-
           ],
         ),
       ),

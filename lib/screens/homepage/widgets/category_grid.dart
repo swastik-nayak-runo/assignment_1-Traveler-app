@@ -1,3 +1,4 @@
+import 'package:assignment_1/widgets/search_page.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -12,7 +13,7 @@ class CategoryGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 16, 0,0),
+      padding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
       child: GridView.builder(
         itemCount: _items.length,
         shrinkWrap: true,
@@ -38,32 +39,48 @@ class CatItem {
 
 class CatTile extends StatelessWidget {
   final CatItem item;
+  const CatTile({super.key, required this.item});
 
-  const CatTile({required this.item});
+  void _openCategory(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DynamicSearchPage(category: item.label),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+
     return Column(
       children: [
-        SizedBox(
-          height: 70,
-          width: 70,
+        Hero(
+          tag: 'search-bar',
           child: Material(
-            color: Color(0xFF363535),
+            color: const Color(0xFF363535),
             borderRadius: BorderRadius.circular(10),
             child: InkWell(
-              onTap: () {},
-              child: Icon(
-              item.icon,
-              size: 28,
-              color: Colors.white,
-            ),
+              borderRadius: BorderRadius.circular(10),
+              onTap: () => _openCategory(context),
+              child: SizedBox(
+                height: 70,
+                width: 70,
+                child: Icon(
+                  item.icon,
+                  size: 28,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
         ),
         const SizedBox(height: 8),
-        Text(item.label, style: TextStyle(color: Colors.black),),
+        Text(
+          item.label,
+          style: const TextStyle(color: Colors.black),
+        ),
       ],
     );
   }
 }
+

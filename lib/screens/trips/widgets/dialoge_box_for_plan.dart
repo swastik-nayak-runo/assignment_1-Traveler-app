@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:assignment_1/screens/edit%20screens/edit_plan_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:assignment_1/screens/trips/util/trip_detail_utils.dart';
@@ -7,23 +8,30 @@ import 'package:intl/intl.dart';
 
 String dialogTitleForPlan(PlanType type) {
   switch (type) {
-    case PlanType.activity:   return 'Activity Details';
-    case PlanType.travel:     return 'Travel Details';
-    case PlanType.lodging:    return 'Lodging Details';
-    case PlanType.restaurant: return 'Restaurant Details';
+    case PlanType.activity:
+      return 'Activity Details';
+    case PlanType.travel:
+      return 'Travel Details';
+    case PlanType.lodging:
+      return 'Lodging Details';
+    case PlanType.restaurant:
+      return 'Restaurant Details';
   }
 }
 
 //for tap  info
 const Map<PlanType, String> _planTypeToColl = {
-  PlanType.activity:   'activityPlans',
-  PlanType.travel:     'travelPlans',
-  PlanType.lodging:    'lodgingPlans',
+  PlanType.activity: 'activityPlans',
+  PlanType.travel: 'travelPlans',
+  PlanType.lodging: 'lodgingPlans',
   PlanType.restaurant: 'restaurantPlans',
 };
 
-
-Future<void> showPlanDetailsDialog(BuildContext context, NormalizedPlan plan, String tripId,) async {
+Future<void> showPlanDetailsDialog(
+  BuildContext context,
+  NormalizedPlan plan,
+  String tripId,
+) async {
   const userId = 'demoUser';
 
   final collName = _planTypeToColl[plan.type];
@@ -49,7 +57,8 @@ Future<void> showPlanDetailsDialog(BuildContext context, NormalizedPlan plan, St
         title: const Text('Error'),
         content: Text('Failed to load plan details:\n$e'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+          TextButton(
+              onPressed: () => Navigator.pop(context), child: const Text('OK')),
         ],
       ),
     );
@@ -65,7 +74,8 @@ Future<void> showPlanDetailsDialog(BuildContext context, NormalizedPlan plan, St
         title: const Text('Not found'),
         content: const Text('This plan no longer exists.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+          TextButton(
+              onPressed: () => Navigator.pop(context), child: const Text('OK')),
         ],
       ),
     );
@@ -79,7 +89,12 @@ Future<void> showPlanDetailsDialog(BuildContext context, NormalizedPlan plan, St
     context: context,
     builder: (_) => AlertDialog(
       backgroundColor: Colors.white,
-      title: Text(dialogTitleForPlan(plan.type,), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),),
+      title: Text(
+        dialogTitleForPlan(
+          plan.type,
+        ),
+        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+      ),
       content: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,18 +104,35 @@ Future<void> showPlanDetailsDialog(BuildContext context, NormalizedPlan plan, St
       ),
       actions: [
         TextButton(
-          style: TextButton.styleFrom(
-            backgroundColor: Colors.black
+          style: TextButton.styleFrom(backgroundColor: Colors.black),
+          onPressed: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => EditPlanPage(
+                userId: 'demoUser',
+                tripId: tripId,
+                planType: plan.type,
+                planId: plan.id,
+              ),
+            ));
+          },
+          child: Text(
+            'Edit',
+            style: TextStyle(color: Colors.white),
           ),
+        ),
+        TextButton(
+          style: TextButton.styleFrom(backgroundColor: Colors.black),
           onPressed: () => Navigator.pop(context),
-          child: const Text('Close', style: TextStyle(color: Colors.white),),
+          child: const Text(
+            'Close',
+            style: TextStyle(color: Colors.white),
+          ),
         ),
       ],
     ),
   );
 }
-
-
 
 /// Builds a list of display rows (Widgets) appropriate for a plan type.
 List<Widget> buildDetailRowsForPlan(PlanType type, Map<String, dynamic> data) {

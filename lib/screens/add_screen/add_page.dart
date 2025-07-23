@@ -1,5 +1,4 @@
 import 'package:assignment_1/screens/add_screen/widgets/custom_text_field.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -14,8 +13,6 @@ class _PlanTripPageState extends State<PlanTripPage> {
   final TextEditingController destinationController = TextEditingController();
   DateTime? startDate;
   DateTime? endDate;
-  TimeOfDay? startTime;
-  TimeOfDay? endTime;
 
   final String _demoUsrId = 'demoUser';
   final _db = FirebaseFirestore.instance;
@@ -25,13 +22,26 @@ class _PlanTripPageState extends State<PlanTripPage> {
 
     if (dest.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a destination')),
+        const SnackBar(content: Text('Please enter a destination')),
       );
       return;
     }
 
-    // Validate date range
-    if (startDate != null && endDate != null && endDate!.isBefore(startDate!)) {
+    if (startDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a start date')),
+      );
+      return;
+    }
+
+    if (endDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select an end date')),
+      );
+      return;
+    }
+
+    if (endDate!.isBefore(startDate!)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('End date must be after start date')),
       );
@@ -41,13 +51,8 @@ class _PlanTripPageState extends State<PlanTripPage> {
     try {
       await _db.collection('users').doc(_demoUsrId).collection('trips').add({
         'destination': dest,
-        'startDate': startDate != null ? Timestamp.fromDate(startDate!) : null,
-        'endDate': endDate != null ? Timestamp.fromDate(endDate!) : null,
-        'startTime': startTime != null
-            ? '${startTime!.hour}:${startTime!.minute}'
-            : null,
-        'endTime':
-            endTime != null ? '${endTime!.hour}:${endTime!.minute}' : null,
+        'startDate': Timestamp.fromDate(startDate!),
+        'endDate': Timestamp.fromDate(endDate!),
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -56,13 +61,6 @@ class _PlanTripPageState extends State<PlanTripPage> {
         const SnackBar(content: Text('Trip created successfully')),
       );
 
-      destinationController.clear();
-      setState(() {
-        startDate = null;
-        endDate = null;
-        startTime = null;
-        endTime = null;
-      });
       Navigator.of(context).pop();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -78,9 +76,7 @@ class _PlanTripPageState extends State<PlanTripPage> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
-    if (picked != null) {
-      setState(() => startDate = picked);
-    }
+    if (picked != null) setState(() => startDate = picked);
   }
 
   Future<void> pickEndDate() async {
@@ -90,29 +86,7 @@ class _PlanTripPageState extends State<PlanTripPage> {
       firstDate: startDate ?? DateTime(2020),
       lastDate: DateTime(2100),
     );
-    if (picked != null) {
-      setState(() => endDate = picked);
-    }
-  }
-
-  Future<void> pickStartTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    if (picked != null) {
-      setState(() => startTime = picked);
-    }
-  }
-
-  Future<void> pickEndTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    if (picked != null) {
-      setState(() => endTime = picked);
-    }
+    if (picked != null) setState(() => endDate = picked);
   }
 
   @override
@@ -134,7 +108,7 @@ class _PlanTripPageState extends State<PlanTripPage> {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                "Build an itinerary and map out your upcoming travel plans",
+                "Add the destination and trip dates to create your itinerary.",
                 style: TextStyle(fontSize: 14, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
@@ -146,76 +120,44 @@ class _PlanTripPageState extends State<PlanTripPage> {
               controller: destinationController,
               hintText: "e.g., Paris, Hawaii, Japan",
               showLabel: true,
-              labelText: 'Destination',
+              labelText: 'Destination*',
             ),
 
             const SizedBox(height: 16),
-            const Text("Dates (optional)",
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text("Dates*", style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
 
-            // Start Date Button
-            OutlinedButton.icon(
-              onPressed: pickStartDate,
-              icon: const Icon(Icons.calendar_today,
-                  size: 18, color: Colors.black),
-              label: Text(
-                startDate == null
-                    ? "Start date"
-                    : startDate!.toString().split(' ')[0],
-                style: const TextStyle(color: Colors.black),
-              ),
-            ),
-
-            // Show End Date & Time Inputs only if Start Date is selected
-            if (startDate != null) ...[
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: pickEndDate,
-                icon: const Icon(Icons.calendar_today,
-                    size: 18, color: Colors.black),
-                label: Text(
-                  endDate == null
-                      ? "End date"
-                      : endDate!.toString().split(' ')[0],
-                  style: const TextStyle(color: Colors.black),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Start Date Button
+                OutlinedButton.icon(
+                  onPressed: pickStartDate,
+                  icon: const Icon(Icons.calendar_today,
+                      size: 18, color: Colors.black),
+                  label: Text(
+                    startDate == null
+                        ? "Select start date"
+                        : startDate!.toString().split(' ')[0],
+                    style: const TextStyle(color: Colors.black),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              const Text("Time (optional)",
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: pickStartTime,
-                      icon: const Icon(Icons.access_time,
-                          size: 18, color: Colors.black),
-                      label: Text(
-                        startTime == null
-                            ? "Start time"
-                            : startTime!.format(context),
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: pickEndTime,
-                      icon: const Icon(Icons.access_time,
-                          size: 18, color: Colors.black),
-                      label: Text(
-                        endTime == null ? "End time" : endTime!.format(context),
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
 
+                const SizedBox(height: 16),
+                // End Date Button
+                OutlinedButton.icon(
+                  onPressed: pickEndDate,
+                  icon: const Icon(Icons.calendar_today,
+                      size: 18, color: Colors.black),
+                  label: Text(
+                    endDate == null
+                        ? "Select end date"
+                        : endDate!.toString().split(' ')[0],
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
             const Spacer(),
             SizedBox(
               width: double.infinity,

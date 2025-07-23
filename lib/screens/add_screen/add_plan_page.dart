@@ -1,16 +1,14 @@
 import 'package:assignment_1/screens/add_screen/widgets/activity_plan_tab.dart';
-import 'package:assignment_1/screens/add_screen/widgets/custom_text_field.dart';
 import 'package:assignment_1/screens/add_screen/widgets/lodging_plan_tab.dart';
 import 'package:assignment_1/screens/add_screen/widgets/restaurant_plan_tab.dart';
 import 'package:assignment_1/screens/add_screen/widgets/travel_plan_tab.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class AddPlanPage extends StatefulWidget {
   final String tripId;
-  final String userId; // default: demoUser
+  final String userId;
 
   const AddPlanPage({
     super.key,
@@ -30,10 +28,16 @@ class _AddPlanPageState extends State<AddPlanPage>
   late final CollectionReference<Map<String, dynamic>> _lodgingRef;
   late final CollectionReference<Map<String, dynamic>> _restaurantRef;
 
+  DateTime? tripStartDate;
+  DateTime? tripEndDate;
+  String destination = "Unknown";
+  bool isLoading = true;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+
     final baseTripRef = FirebaseFirestore.instance
         .collection('users')
         .doc(widget.userId)
@@ -44,6 +48,25 @@ class _AddPlanPageState extends State<AddPlanPage>
     _travelRef = baseTripRef.collection('travelPlans');
     _lodgingRef = baseTripRef.collection('lodgingPlans');
     _restaurantRef = baseTripRef.collection('restaurantPlans');
+
+    _fetchTripDetails(baseTripRef);
+  }
+
+  Future<void> _fetchTripDetails(DocumentReference<Map<String, dynamic>> tripRef) async {
+    final docSnap = await tripRef.get();
+    if (docSnap.exists) {
+      final data = docSnap.data();
+      setState(() {
+        destination = data?['destination'] ?? "Unknown";
+        tripStartDate = (data?['startDate'] as Timestamp?)?.toDate();
+        tripEndDate = (data?['endDate'] as Timestamp?)?.toDate();
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   @override
@@ -52,17 +75,14 @@ class _AddPlanPageState extends State<AddPlanPage>
     super.dispose();
   }
 
-  // Expose these if child tabs need them (we'll wire up soon)
-  CollectionReference<Map<String, dynamic>> get activityRef => _activityRef;
-
-  CollectionReference<Map<String, dynamic>> get travelRef => _travelRef;
-
-  CollectionReference<Map<String, dynamic>> get lodgingRef => _lodgingRef;
-
-  CollectionReference<Map<String, dynamic>> get restaurantRef => _restaurantRef;
-
   @override
   Widget build(BuildContext context) {
+    final fmt = DateFormat('dd-MM-yyyy');
+    final startLabel =
+    tripStartDate != null ? fmt.format(tripStartDate!) : 'Start date not set';
+    final endLabel =
+    tripEndDate != null ? fmt.format(tripEndDate!) : 'End date not set';
+
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(120),
@@ -72,108 +92,39 @@ class _AddPlanPageState extends State<AddPlanPage>
           elevation: 0,
           flexibleSpace: Padding(
             padding:
-                const EdgeInsets.only(top: 40, left: 16, right: 16, bottom: 12),
-            child: FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-              future: FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(widget.userId)
-                  .collection('trips')
-                  .doc(widget.tripId)
-                  .get(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  // ✅ Shimmer placeholder for loading
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 150,
-                        height: 16,
-                        color: Colors.grey.shade300,
+            const EdgeInsets.only(top: 40, left: 16, right: 16, bottom: 12),
+            child: Column(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "Plan your trip for",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(height: 8),
-                      Container(
-                        width: 120,
-                        height: 22,
-                        color: Colors.grey.shade300,
+                    ),
+                    const Spacer(),
+                    Text(
+                      destination,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ],
-                  );
-                }
-
-                if (snapshot.hasError ||
-                    !snapshot.hasData ||
-                    !snapshot.data!.exists) {
-                  return const Text("Plan your trip",
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w400));
-                }
-
-                final data = snapshot.data!.data();
-                final destination = data?['destination'] ?? 'Unknown';
-
-                final tsStart = data?['startDate'] as Timestamp?;
-                final tsEnd = data?['endDate'] as Timestamp?;
-
-                final startDt = tsStart?.toDate();
-                final endDt = tsEnd?.toDate();
-
-                final fmt = DateFormat('dd-MM-yyyy');
-                final startLabel = startDt != null
-                    ? fmt.format(startDt)
-                    : 'Start date not set';
-                final endLabel =
-                    endDt != null ? fmt.format(endDt) : 'End date not set';
-
-                return Padding(
-                  padding: const EdgeInsets.only(top: 10.0),
-                  child: Column(
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            "Plan your trip for",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Spacer(),
-                          Text(
-                            destination,
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                        startLabel,
-                            style: const TextStyle(
-                              color: Colors.black,
-                            ),
-                          ),
-                          const Text(
-                            '→',
-                            style: TextStyle(color: Colors.black),
-                          ),
-                          Text(
-                            endLabel,
-                            style: const TextStyle(color: Colors.black),
-                          )
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              },
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(startLabel, style: const TextStyle(color: Colors.black)),
+                    const Text('→', style: TextStyle(color: Colors.black)),
+                    Text(endLabel, style: const TextStyle(color: Colors.black)),
+                  ],
+                ),
+              ],
             ),
           ),
           bottom: TabBar(
@@ -182,7 +133,7 @@ class _AddPlanPageState extends State<AddPlanPage>
             unselectedLabelColor: Colors.black,
             indicatorColor: Colors.black,
             labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.normal),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
             tabs: const [
               Tab(text: 'Activity'),
               Tab(text: 'Travel'),
@@ -192,15 +143,32 @@ class _AddPlanPageState extends State<AddPlanPage>
           ),
         ),
       ),
-      body: TabBarView(
+      body: isLoading || tripStartDate == null || tripEndDate == null
+          ? const Center(child: CircularProgressIndicator(color: Colors.black))
+          : TabBarView(
         controller: _tabController,
         children: [
-          ActivityPlansTab(ref: _activityRef),
-          TravelPlansTab(ref: _travelRef),
-          LodgingPlansTab(ref: _lodgingRef),
-          RestaurantPlansTab(ref: _restaurantRef),
+          ActivityPlansTab(
+            ref: _activityRef,
+            onPLanSaved: () => Navigator.pop(context, true),
+          ),
+          TravelPlansTab(
+            ref: _travelRef,
+            onPLanSaved: () => Navigator.pop(context, true),
+          ),
+          LodgingPlansTab(
+            ref: _lodgingRef,
+            onPLanSaved: () => Navigator.pop(context, true),
+          ),
+          RestaurantPlansTab(
+            ref: _restaurantRef,
+            tripStartDate: tripStartDate!,
+            tripEndDate: tripEndDate!,
+            onPLanSaved: () => Navigator.pop(context, true),
+          ),
         ],
       ),
     );
   }
+
 }
