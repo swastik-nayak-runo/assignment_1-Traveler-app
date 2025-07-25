@@ -28,7 +28,7 @@ class _TripsPageState extends State<TripsPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -65,7 +65,6 @@ class _TripsPageState extends State<TripsPage>
             Tab(text: "Ongoing"),
             Tab(text: "Upcoming"),
             Tab(text: "Past"),
-            Tab(text: "Incomplete"),
           ],
         ),
       ),
@@ -91,16 +90,10 @@ class _TripsPageState extends State<TripsPage>
           final past = <TripDoc>[];
           final upcoming = <TripDoc>[];
           final ongoing = <TripDoc>[];
-          final incomplete = <TripDoc>[]; // New list
 
           for (final docSnap in snapshot.data!.docs) {
             final data = docSnap.data();
             final trip = TripDoc.fromFirestore(docSnap.id, data);
-
-            if (trip.start == null || trip.end == null) {
-              incomplete.add(trip); // If any date missing → incomplete
-              continue;
-            }
 
             final start = _asDay(trip.start!);
             final end = _asDay(trip.end!);
@@ -120,7 +113,6 @@ class _TripsPageState extends State<TripsPage>
               _TripList(trips: ongoing, emptyLabel: "No ongoing trips"),
               _TripList(trips: upcoming, emptyLabel: "No upcoming trips"),
               _TripList(trips: past, emptyLabel: "No past trips"),
-              _TripList(trips: incomplete, emptyLabel: "No incomplete trips"),
             ],
           );
         },
@@ -194,7 +186,8 @@ Future<bool> deleteTripAndPlans({
   required String tripId,
 }) async {
   final db = FirebaseFirestore.instance;
-  final tripRef = db.collection('users').doc(userId).collection('trips').doc(tripId);
+  final tripRef =
+      db.collection('users').doc(userId).collection('trips').doc(tripId);
 
   // Known subcollections – adjust if you add more
   const subColls = [
@@ -265,7 +258,8 @@ class _TripCardState extends State<_TripCard> {
     // Keep shimmer for a brief beat so user sees something happened.
     if (mounted) {
       await Future.delayed(const Duration(milliseconds: 300));
-      if (mounted) setState(() => _isDeleting = false); // in case doc still visible
+      if (mounted)
+        setState(() => _isDeleting = false); // in case doc still visible
     }
   }
 
@@ -282,147 +276,85 @@ class _TripCardState extends State<_TripCard> {
       duration: const Duration(milliseconds: 250),
       child: _isDeleting
           ? const _TripCardShimmer()
-          : Container(
-        key: const ValueKey('card'),
-        width: MediaQuery.of(context).size.width - 50,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.black87,
-          borderRadius: BorderRadius.circular(10),
+          : InkWell(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) =>
+                TripDetailPage(tripId: t.id),
+          ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top row: destination + delete/open
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Destination + dates
-                SizedBox(
-                  width: 270,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        t.destination,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 22,
+        child: Container(
+          width: MediaQuery.of(context).size.width - 50,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.black87,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SizedBox(
+                    width: 270,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              t.destination,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 26,
+                              ),
+                            ),
+                            SizedBox(width: 10,),
+                            InkWell(
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        EditTripPage(tripId: t.id),
+                                  ),
+                                );
+                              },
+                              child: Icon(Icons.edit, size: 23, color: Colors.white),
+                            ),
+
+                          ],
                         ),
-                      ),
-                      Text(
-                        datesLabel,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Row(
-                  children: [
-                    InkWell(
-                      onTap: _handleDelete,
-                      child: const Icon(
-                        Icons.delete_outline,
-                        size: 23,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    InkWell(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                TripDetailPage(tripId: t.id),
+                        SizedBox(height: 10,),
+                        Text(
+                         datesLabel,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
                           ),
-                        );
-                      },
-                      child: const Icon(
-                        Icons.open_in_new_rounded,
-                        size: 23,
-                        color: Colors.white,
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Bottom row: edit / add plan
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                InkWell(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => EditTripPage(
-                          tripId: t.id,
-                          userId: widget.userId,
-                        ),
-                      ),
-                    );
-                  },
-                  child: const Row(
-                    children: [
-                      Icon(
-                        Icons.edit,
-                        size: 16,
-                        color: Colors.white,
-                      ),
-                      SizedBox(width: 5),
-                      Text(
-                        'Edit Trip Info',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
                   ),
-                ),
-                const Spacer(),
-                InkWell(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => AddPlanPage(
-                          tripId: t.id,
-                          userId: widget.userId,
-                        ),
-                      ),
-                    );
-                  },
-                  child: const Row(
-                    children: [
-                      Icon(
-                        Icons.add,
-                        size: 23,
-                        color: Colors.white,
-                      ),
-                      SizedBox(width: 5),
-                      Text(
-                        'Add Trip Plan',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+                  InkWell(
+                    onTap: () => _handleDelete(),
+                    child: const Icon(
+                      Icons.delete_outline,
+                      size: 28,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+
+            ],
+          ),
         ),
-      ),
+      )
     );
   }
 }
@@ -455,7 +387,6 @@ class _TripCardShimmer extends StatelessWidget {
                   CustomShimmer(width: 100, height: 14), // Date shimmer
                 ],
               ),
-              CustomShimmer(width: 23, height: 23, borderRadius: 12), // Delete icon shimmer
             ],
           ),
           SizedBox(height: 16),
@@ -476,4 +407,3 @@ class _TripCardShimmer extends StatelessWidget {
     );
   }
 }
-

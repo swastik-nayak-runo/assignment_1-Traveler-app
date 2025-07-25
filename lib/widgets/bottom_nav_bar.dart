@@ -1,5 +1,4 @@
 import 'package:assignment_1/screens/add_screen/add_page.dart';
-import 'package:assignment_1/screens/profile%20page/profile_page.dart';
 import 'package:assignment_1/screens/trips/trips.dart';
 import 'package:flutter/material.dart';
 import 'package:assignment_1/screens/homepage/home.dart';
@@ -19,9 +18,7 @@ class _MainShellState extends State<MainShell> {
 
   final _pages = const [
     HomePage(),
-    PlaceholderPage(label: 'Map'),
     TripsPage(),
-    ProfilePage(userId: 'demoUser')
   ];
 
   @override
@@ -37,10 +34,10 @@ class _MainShellState extends State<MainShell> {
       onWillPop: () async {
         if (_index != 0) {
           setState(() => _index = 0); // go Home
-          return false;               // block the pop
+          return false; // block the pop
         }
         SystemNavigator.pop();
-        return true;                  // allow default pop when already Home
+        return true; // allow default pop when already Home
       },
       child: Scaffold(
         body: _pages[_index],
@@ -66,10 +63,8 @@ class _MainShellState extends State<MainShell> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildNavItem(Icons.home, 0, "Home"),
-                _buildNavItem(Icons.map, 1, "Map"),
                 const SizedBox(width: 40),
-                _buildNavItem(Icons.luggage, 2, "Trips"),
-                _buildNavItem(Icons.person, 3, "Profile"),
+                _buildNavItem(Icons.luggage, 1, "Trips"),
               ],
             ),
           ),
@@ -87,22 +82,10 @@ class _MainShellState extends State<MainShell> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, color: isSelected ? Colors.black : Colors.grey),
-          Text(label, style: TextStyle(color: isSelected ? Colors.black : Colors.grey)),
+          Text(label,
+              style: TextStyle(color: isSelected ? Colors.black : Colors.grey)),
         ],
       ),
-    );
-  }
-}
-
-class PlaceholderPage extends StatelessWidget {
-  final String label;
-
-  const PlaceholderPage({super.key, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(label, style: Theme.of(context).textTheme.headlineMedium),
     );
   }
 }

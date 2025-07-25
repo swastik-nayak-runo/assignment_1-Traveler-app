@@ -26,55 +26,17 @@ class TripDetailBody extends StatefulWidget {
 
 class _TripDetailBodyState extends State<TripDetailBody> {
 
-  /// Handle tap on the "+" button to add a plan.
-  Future<void> _addPlan() async {
-    final updated = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => AddPlanPage(tripId: widget.tripId),
-      ),
-    );
-
-    if (updated == true) {
-      // 1) Refresh plans in provider (if provided)
-      if (mounted) {
-        // Only call if provider exists above; wrap in try to avoid crash if absent.
-        try {
-          context.read<TripPlansProvider>().fetchPlans();
-        } catch (_) {
-          const SnackBar(
-            content: Text(
-              'Error fetching data',
-            ),
-          );
-        }
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final destination = widget.tripData['destination'] ?? 'Unknown Trip';
 
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
+
         title: Text(
           destination,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          IconButton(
-            onPressed: _addPlan,
-            icon: const Icon(
-              Icons.add,
-              size: 30,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(
-            width: 10,
-          ),
-        ],
         centerTitle: true,
         bottom: widget.days.isNotEmpty
             ? PreferredSize(

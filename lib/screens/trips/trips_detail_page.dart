@@ -1,11 +1,8 @@
 import 'package:assignment_1/screens/edit%20screens/edit_plan_page.dart';
 import 'package:assignment_1/screens/trips/trips_plan_provider.dart';
-import 'package:assignment_1/screens/trips/util/trip_detail_utils.dart';
-import 'package:assignment_1/screens/trips/widgets/dialoge_box_for_plan.dart';
 import 'package:assignment_1/screens/trips/widgets/trip_detail_body.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class TripDetailPage extends StatefulWidget {
@@ -114,5 +111,4 @@ class _TripDetailPageState extends State<TripDetailPage>
       ),
     );
   }
-
 }

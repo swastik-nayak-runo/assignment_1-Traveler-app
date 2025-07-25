@@ -1,12 +1,18 @@
 import 'package:assignment_1/screens/add_screen/widgets/custom_text_field.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class LodgingPlansTab extends StatefulWidget {
   final CollectionReference<Map<String, dynamic>> ref;
   final VoidCallback? onPLanSaved;
+  final DateTime planDate;
 
-  const LodgingPlansTab({required this.ref, this.onPLanSaved});
+  const LodgingPlansTab({
+    required this.ref,
+    this.onPLanSaved,
+    required this.planDate,
+  });
 
   @override
   State<LodgingPlansTab> createState() => LodgingPlansTabState();
@@ -14,68 +20,44 @@ class LodgingPlansTab extends StatefulWidget {
 
 class LodgingPlansTabState extends State<LodgingPlansTab> {
   final _formKey = GlobalKey<FormState>();
-
+  final DateFormat dateFormat = DateFormat('dd-MM-yyyy');
   final TextEditingController lodgingNameController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
+  String checkType = "Check-in";
+  TimeOfDay? time;
 
-  DateTime? checkInDate;
-  TimeOfDay? checkInTime;
-  DateTime? checkOutDate;
-  TimeOfDay? checkOutTime;
 
-  // Pickers
-  Future<void> pickCheckInDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) setState(() => checkInDate = picked);
-  }
-
-  Future<void> pickCheckOutDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: checkInDate ?? DateTime.now(),
-      firstDate: checkInDate ?? DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) setState(() => checkOutDate = picked);
-  }
-
-  Future<void> pickCheckInTime() async {
+  Future<void> pickTime() async {
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
     );
-    if (picked != null) setState(() => checkInTime = picked);
-  }
-
-  Future<void> pickCheckOutTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    if (picked != null) setState(() => checkOutTime = picked);
+    if (picked != null) setState(() => time = picked);
   }
 
   // Save Lodging Data
   Future<void> saveLodging() async {
-    if (checkInDate == null || checkOutDate == null) {
+    if (lodgingNameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Check-in and check-out dates are required")),
+        const SnackBar(content: Text("Enter Lodging Name")),
       );
       return;
     }
 
+    if (time == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+         SnackBar(
+            content: Text("$checkType time is required")),
+      );
+      return;
+    }
+
+
     try {
       await widget.ref.add({
-        'lodgingName': lodgingNameController.text.trim().isNotEmpty
-            ? lodgingNameController.text.trim()
-            : null,
+        'lodgingName': lodgingNameController.text.trim(),
         'address': addressController.text.trim().isNotEmpty
             ? addressController.text.trim()
             : null,
@@ -85,14 +67,8 @@ class LodgingPlansTabState extends State<LodgingPlansTab> {
         'email': emailController.text.trim().isNotEmpty
             ? emailController.text.trim()
             : null,
-        'checkInDate': Timestamp.fromDate(checkInDate!),
-        'checkOutDate': Timestamp.fromDate(checkOutDate!),
-        'checkInTime': checkInTime != null
-            ? '${checkInTime!.hour}:${checkInTime!.minute}'
-            : null,
-        'checkOutTime': checkOutTime != null
-            ? '${checkOutTime!.hour}:${checkOutTime!.minute}'
-            : null,
+        'planDate': Timestamp.fromDate(widget.planDate),
+        'time': '${time!.hour}:${time!.minute}',
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -103,10 +79,7 @@ class LodgingPlansTabState extends State<LodgingPlansTab> {
 
       _formKey.currentState?.reset();
       setState(() {
-        checkInDate = null;
-        checkOutDate = null;
-        checkInTime = null;
-        checkOutTime = null;
+        time  = null;
       });
 
       Navigator.of(context).pop(true);
@@ -130,31 +103,45 @@ class LodgingPlansTabState extends State<LodgingPlansTab> {
               controller: lodgingNameController,
               hintText: 'Hotel / Airbnb name',
               showLabel: true,
-              labelText: 'Lodging Name (optional)',
+              labelText: 'Lodging Name*',
             ),
             const SizedBox(height: 16),
-            const Text("Check-in*"),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: pickCheckInDate,
-                    child: Text(
-                      checkInDate == null
-                          ? "Check-in Date"
-                          : checkInDate!.toString().split(' ')[0],
-                      style: const TextStyle(color: Colors.black),
-                    ),
+            DropdownButtonFormField<String>(
+              value: checkType,
+              decoration: const InputDecoration(
+                fillColor: Colors.transparent,
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: Colors.black,
                   ),
                 ),
-                const SizedBox(width: 8),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              dropdownColor: Color(0xFFE4EDF2),
+              items: const [
+                DropdownMenuItem(value: "Check-in", child: Text("Check-in")),
+                DropdownMenuItem(value: "Check-out", child: Text("Check-out")),
+              ],
+              onChanged: (val) => setState(() => checkType = val!),
+            ),
+             SizedBox(height: 16,),
+             Text(
+              "$checkType time*",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Row(
+             children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: pickCheckInTime,
+                    onPressed: pickTime,
                     child: Text(
-                      checkInTime == null
-                          ? "Check-in Time"
-                          : checkInTime!.format(context),
+                      time == null
+                          ? "$checkType Time"
+                          : time!.format(context),
                       style: const TextStyle(color: Colors.black),
                     ),
                   ),
@@ -162,35 +149,7 @@ class LodgingPlansTabState extends State<LodgingPlansTab> {
               ],
             ),
             const SizedBox(height: 16),
-            const Text("Check-out*"),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: pickCheckOutDate,
-                    child: Text(
-                      checkOutDate == null
-                          ? "Check-out Date"
-                          : checkOutDate!.toString().split(' ')[0],
-                      style: const TextStyle(color: Colors.black),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: pickCheckOutTime,
-                    child: Text(
-                      checkOutTime == null
-                          ? "Check-out Time"
-                          : checkOutTime!.format(context),
-                      style: const TextStyle(color: Colors.black),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+
             CustomTextField(
               controller: addressController,
               hintText: 'Type the lodging address here',

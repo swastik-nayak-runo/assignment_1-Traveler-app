@@ -4,29 +4,28 @@ import 'package:google_fonts/google_fonts.dart';
 
 class LargeDestinationCard extends StatelessWidget {
   final String title;
-  final String description;
   final String location;
+  final String picUrl;
 
   const LargeDestinationCard({
     required this.title,
-    required this.description,
     required this.location,
+    required this.picUrl,
   });
 
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: 1.8,
+      aspectRatio: 1.6,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: Stack(
           fit: StackFit.expand,
           children: [
-
             Container(
               color: Colors.black,
               child: Image.asset(
-                "assets/images/charminar.png",
+                picUrl,
                 fit: BoxFit.cover,
               ),
             ),
@@ -40,7 +39,15 @@ class LargeDestinationCard extends StatelessWidget {
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 40,
+                        overflow: TextOverflow.ellipsis,
                         fontWeight: FontWeight.w900),
+                  ),
+                  Text(
+                    location,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13
+                    ),
                   ),
                   const Spacer(),
                   ElevatedButton(

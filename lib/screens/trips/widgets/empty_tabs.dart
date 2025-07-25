@@ -14,7 +14,7 @@ class EmptyTabs extends StatelessWidget {
         EmptyState(message: message),
         EmptyState(message: message),
         EmptyState(message: message),
-        EmptyState(message: message),
+
       ],
     );
   }

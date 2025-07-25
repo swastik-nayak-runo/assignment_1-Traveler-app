@@ -1,12 +1,18 @@
 import 'package:assignment_1/screens/add_screen/widgets/custom_text_field.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class ActivityPlansTab extends StatefulWidget {
   final CollectionReference<Map<String, dynamic>> ref;
+  final DateTime planDate;
   final VoidCallback? onPLanSaved;
 
-  const ActivityPlansTab({required this.ref, this.onPLanSaved});
+  const ActivityPlansTab({
+    super.key,
+    required this.ref,
+    this.onPLanSaved, required this.planDate,
+  });
 
   @override
   State<ActivityPlansTab> createState() => ActivityPlansTabState();
@@ -21,30 +27,8 @@ class ActivityPlansTabState extends State<ActivityPlansTab> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController websiteController = TextEditingController();
 
-  DateTime? startDate;
-  DateTime? endDate;
   TimeOfDay? startTime;
   TimeOfDay? endTime;
-
-  Future<void> pickStartDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) setState(() => startDate = picked);
-  }
-
-  Future<void> pickEndDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: startDate ?? DateTime.now(),
-      firstDate: startDate ?? DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) setState(() => endDate = picked);
-  }
 
   Future<void> pickStartTime() async {
     final picked = await showTimePicker(
@@ -70,6 +54,13 @@ class ActivityPlansTabState extends State<ActivityPlansTab> {
       return;
     }
 
+    if (endTime == null || startTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select both start time and finish time")),
+      );
+      return;
+    }
+
     try {
       await widget.ref.add({
         'eventName': eventNameController.text.trim(),
@@ -85,13 +76,9 @@ class ActivityPlansTabState extends State<ActivityPlansTab> {
         'website': websiteController.text.trim().isNotEmpty
             ? websiteController.text.trim()
             : null,
-        'startDate': startDate != null ? Timestamp.fromDate(startDate!) : null,
-        'endDate': endDate != null ? Timestamp.fromDate(endDate!) : null,
-        'startTime': startTime != null
-            ? '${startTime!.hour}:${startTime!.minute}'
-            : null,
-        'endTime':
-            endTime != null ? '${endTime!.hour}:${endTime!.minute}' : null,
+        'planDate': Timestamp.fromDate(widget.planDate),
+        'startTime': '${startTime!.hour}:${startTime!.minute}',
+        'endTime': '${endTime!.hour}:${endTime!.minute}',
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -102,8 +89,6 @@ class ActivityPlansTabState extends State<ActivityPlansTab> {
 
       _formKey.currentState?.reset();
       setState(() {
-        startDate = null;
-        endDate = null;
         startTime = null;
         endTime = null;
       });
@@ -131,21 +116,9 @@ class ActivityPlansTabState extends State<ActivityPlansTab> {
               labelText: 'Event Name*',
             ),
             const SizedBox(height: 16),
-            const Text("Start (optional)"),
+            const Text("Start and Finish Tine*", style: TextStyle(fontWeight: FontWeight.bold),),
             Row(
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: pickStartDate,
-                    child: Text(
-                      startDate == null
-                          ? "Start Date"
-                          : startDate!.toString().split(' ')[0],
-                      style: TextStyle(color: Colors.black),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton(
                     onPressed: pickStartTime,
@@ -153,39 +126,23 @@ class ActivityPlansTabState extends State<ActivityPlansTab> {
                       startTime == null
                           ? "Start Time"
                           : startTime!.format(context),
-                      style: TextStyle(color: Colors.black),
+                      style: const TextStyle(color: Colors.black),
                     ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Text("End (optional)"),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: pickEndDate,
-                    child: Text(
-                      endDate == null
-                          ? "End Date"
-                          : endDate!.toString().split(' ')[0],
-                      style: TextStyle(color: Colors.black),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8,),
                 Expanded(
                   child: OutlinedButton(
                     onPressed: pickEndTime,
                     child: Text(
                       endTime == null ? "End Time" : endTime!.format(context),
-                      style: TextStyle(color: Colors.black),
+                      style: const TextStyle(color: Colors.black),
                     ),
                   ),
                 ),
               ],
             ),
+
             const SizedBox(height: 16),
             CustomTextField(
               controller: venueController,
@@ -214,7 +171,7 @@ class ActivityPlansTabState extends State<ActivityPlansTab> {
               showLabel: true,
               labelText: 'Website (optional)',
             ),
-            SizedBox(
+            const SizedBox(
               height: 40,
             ),
             SizedBox(

@@ -255,137 +255,93 @@ class _TripCardState extends State<TripCard> {
     final startDate = startTs?.toDate();
     final endDate = endTs?.toDate();
 
-    final startTimeRaw = trip['startTime'];
-    final endTimeRaw = trip['endTime'];
-
-    String startTime =
-        (startTimeRaw == null || (startTimeRaw as String).isEmpty)
-            ? '12:01 AM'
-            : startTimeRaw;
-    String endTime = (endTimeRaw == null || (endTimeRaw as String).isEmpty)
-        ? '11:59 PM'
-        : endTimeRaw;
-
     String dateLabel;
     if (startDate != null && endDate != null) {
       dateLabel =
-          "${DateFormat('dd-MM-yyyy').format(startDate)} ($startTime) → ${DateFormat('dd-MM-yyyy').format(endDate)} ($endTime)";
+          "${DateFormat('dd-MM-yyyy').format(startDate)}  →  ${DateFormat('dd-MM-yyyy').format(endDate)}";
     } else if (startDate != null) {
-      dateLabel = "${DateFormat('dd-MM-yyyy').format(startDate)} ($startTime)";
+      dateLabel = "${DateFormat('dd-MM-yyyy').format(startDate)} ";
     } else {
       dateLabel = "Dates not set";
     }
 
-    return Container(
-      width: MediaQuery.of(context).size.width - 50,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.black87,
-        borderRadius: BorderRadius.circular(10),
+    return InkWell(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) =>
+              TripDetailPage(tripId: widget.tripSnap.id),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              SizedBox(
-                width: 270,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      destination,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
+      child: Container(
+        width: MediaQuery.of(context).size.width - 50,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.black87,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                SizedBox(
+                  width: 270,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            destination,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 26,
+                            ),
+                          ),
+                          SizedBox(width: 10,),
+                          InkWell(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      EditTripPage(tripId: widget.tripSnap.id),
+                                ),
+                              );
+                            },
+                            child: Icon(Icons.edit, size: 23, color: Colors.white),
+                          ),
+
+                        ],
                       ),
-                    ),
-                    Text(
-                      dateLabel,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
+                      SizedBox(height: 10,),
+                      Text(
+                        dateLabel,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              Row(
-                children: [
-                  InkWell(
-                    onTap: () => _deleteTrip(context),
-                    child: const Icon(
-                      Icons.delete_outline,
-                      size: 23,
-                      color: Colors.white,
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 5),
-                  InkWell(
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            TripDetailPage(tripId: widget.tripSnap.id),
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.open_in_new_rounded,
-                      size: 23,
-                      color: Colors.white,
-                    ),
+                ),
+                InkWell(
+                  onTap: () => _deleteTrip(context),
+                  child: const Icon(
+                    Icons.delete_outline,
+                    size: 28,
+                    color: Colors.white,
                   ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              InkWell(
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          EditTripPage(tripId: widget.tripSnap.id),
-                    ),
-                  );
-                },
-                child: const Row(
-                  children: [
-                    Icon(Icons.edit, size: 16, color: Colors.white),
-                    SizedBox(width: 5),
-                    Text(
-                      'Edit Trip Info',
-                      style: TextStyle(color: Colors.white, fontSize: 14),
-                    ),
-                  ],
                 ),
-              ),
-              const Spacer(),
-              InkWell(
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => AddPlanPage(tripId: widget.tripSnap.id),
-                    ),
-                  );
-                },
-                child: const Row(
-                  children: [
-                    Icon(Icons.add, size: 23, color: Colors.white),
-                    SizedBox(width: 5),
-                    Text('Add Trip Plan',
-                        style: TextStyle(color: Colors.white, fontSize: 14)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+
+          ],
+        ),
       ),
     );
   }

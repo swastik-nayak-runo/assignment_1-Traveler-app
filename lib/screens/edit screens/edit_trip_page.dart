@@ -1,12 +1,14 @@
-import 'package:assignment_1/screens/add_screen/widgets/custom_text_field.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/cupertino.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EditTripPage extends StatefulWidget {
   final String tripId;
   final String userId;
-
   const EditTripPage({
     super.key,
     required this.tripId,
@@ -18,22 +20,48 @@ class EditTripPage extends StatefulWidget {
 }
 
 class _EditTripPageState extends State<EditTripPage> {
-  final TextEditingController destinationController = TextEditingController();
+  final _db = FirebaseFirestore.instance;
+  final DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+
+  late String selectedDest = "";
   DateTime? startDate;
   DateTime? endDate;
-  TimeOfDay? startTime;
-  TimeOfDay? endTime;
+  double? selectedLat;
+  double? selectedLon;
+  final String _demoUsrId = 'demoUser';
 
-  final _db = FirebaseFirestore.instance;
+  List<Map<String, dynamic>> allCities = [];
+  bool loadingCities = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchExistingData();
+    _loadTripData();
+    loadCities();
   }
 
-  /// Fetch the existing trip details
-  Future<void> _fetchExistingData() async {
+  Future<void> loadCities() async {
+    final String jsonString = await rootBundle.loadString('assets/places.json');
+    final Map<String, dynamic> jsonData = json.decode(jsonString);
+    final List elements = jsonData['elements'];
+
+    setState(() {
+      allCities = elements
+          .map<Map<String, dynamic>>((e) {
+        return {
+          'name': e['tags']?['name'] ?? '',
+          'lat': e['lat'],
+          'lon': e['lon'],
+        };
+      })
+          .where((e) => e['name'].toString().isNotEmpty)
+          .toList();
+
+      loadingCities = false;
+    });
+  }
+
+  Future<void> _loadTripData() async {
     try {
       final doc = await _db
           .collection('users')
@@ -45,41 +73,59 @@ class _EditTripPageState extends State<EditTripPage> {
       if (doc.exists) {
         final data = doc.data()!;
         setState(() {
-          destinationController.text = data['destination'] ?? '';
-          if (data['startDate'] != null) {
-            startDate = (data['startDate'] as Timestamp).toDate();
-          }
-          if (data['endDate'] != null) {
-            endDate = (data['endDate'] as Timestamp).toDate();
-          }
-          if (data['startTime'] != null) {
-            final parts = data['startTime'].split(':');
-            startTime = TimeOfDay(
-                hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-          }
-          if (data['endTime'] != null) {
-            final parts = data['endTime'].split(':');
-            endTime = TimeOfDay(
-                hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-          }
+          selectedDest = data['destination'] ?? '';
+          startDate = (data['startDate'] as Timestamp?)?.toDate();
+          endDate = (data['endDate'] as Timestamp?)?.toDate();
+          selectedLat = data['latitude'] as double?;
+          selectedLon = data['longitude'] as double?;
         });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Trip not found')),
+        );
+        Navigator.of(context).pop();
       }
     } catch (e) {
-      debugPrint("Error fetching trip data: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading trip: $e')),
+      );
+      Navigator.of(context).pop();
     }
   }
 
-  Future<void> _updateTrip() async {
-    final dest = destinationController.text.trim();
 
-    if (dest.isEmpty) {
+  List<Map<String, dynamic>> filterCities(String query) {
+    return allCities
+        .where((e) =>
+        e['name'].toString().toLowerCase().contains(query.toLowerCase()))
+        .toList();
+  }
+
+  Future<void> _saveTrip() async {
+    final dest = selectedDest;
+
+    if (dest.isEmpty || selectedLat == null || selectedLon == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a destination')),
+        const SnackBar(content: Text('Please select a valid destination')),
       );
       return;
     }
 
-    if (startDate != null && endDate != null && endDate!.isBefore(startDate!)) {
+    if (startDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a start date')),
+      );
+      return;
+    }
+
+    if (endDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select an end date')),
+      );
+      return;
+    }
+
+    if (endDate!.isBefore(startDate!)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('End date must be after start date')),
       );
@@ -87,26 +133,25 @@ class _EditTripPageState extends State<EditTripPage> {
     }
 
     try {
+      // Save to Firestore including lat/lon
       await _db
           .collection('users')
           .doc(widget.userId)
           .collection('trips')
           .doc(widget.tripId)
           .update({
-        'destination': dest,
-        'startDate': startDate != null ? Timestamp.fromDate(startDate!) : null,
-        'endDate': endDate != null ? Timestamp.fromDate(endDate!) : null,
-        'startTime': startTime != null
-            ? '${startTime!.hour}:${startTime!.minute}'
-            : null,
-        'endTime':
-        endTime != null ? '${endTime!.hour}:${endTime!.minute}' : null,
+        'destination': selectedDest,
+        'startDate': Timestamp.fromDate(startDate!),
+        'endDate': Timestamp.fromDate(endDate!),
+        'latitude': selectedLat,
+        'longitude': selectedLon,
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Trip updated successfully')),
+        const SnackBar(content: Text('Trip created successfully')),
       );
+
       Navigator.of(context).pop();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -114,163 +159,177 @@ class _EditTripPageState extends State<EditTripPage> {
       );
     }
   }
-
   Future<void> pickStartDate() async {
+
     final picked = await showDatePicker(
       context: context,
-      initialDate: startDate ?? DateTime.now(),
+      initialDate: DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
-    if (picked != null) setState(() => startDate = picked);
+    if (picked != null) {
+      setState(() => startDate = picked);
+
+    }
   }
 
   Future<void> pickEndDate() async {
+
     final picked = await showDatePicker(
       context: context,
-      initialDate: endDate ?? startDate ?? DateTime.now(),
+      initialDate: startDate ?? DateTime.now(),
       firstDate: startDate ?? DateTime(2020),
       lastDate: DateTime(2100),
     );
-    if (picked != null) setState(() => endDate = picked);
-  }
+    if (picked != null) {
+      setState(() => endDate = picked);
 
-  Future<void> pickStartTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: startTime ?? TimeOfDay.now(),
-    );
-    if (picked != null) setState(() => startTime = picked);
+    }
   }
-
-  Future<void> pickEndTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: endTime ?? TimeOfDay.now(),
-    );
-    if (picked != null) setState(() => endTime = picked);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 40),
-            const Center(
-              child: Text(
-                "Edit Trip",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Center(
+    return GestureDetector(
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            "Edit Trip",
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.only(right: 16, left: 16, bottom: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
 
-              child: Text(
-                "Update your trip details below",
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            CustomTextField(
-              controller: destinationController,
-              hintText: "e.g., Paris, Hawaii, Japan",
-              showLabel: true,
-              labelText: 'Destination',
-            ),
-            const SizedBox(height: 16),
-
-            const Text("Dates (optional)",
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-
-            OutlinedButton.icon(
-              onPressed: pickStartDate,
-              icon: const Icon(Icons.calendar_today,
-                  size: 18, color: Colors.black),
-              label: Text(
-                startDate == null
-                    ? "Start date"
-                    : startDate!.toString().split(' ')[0],
-                style: const TextStyle(color: Colors.black),
-              ),
-            ),
-
-            if (startDate != null) ...[
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: pickEndDate,
-                icon: const Icon(Icons.calendar_today,
-                    size: 18, color: Colors.black),
-                label: Text(
-                  endDate == null
-                      ? "End date"
-                      : endDate!.toString().split(' ')[0],
-                  style: const TextStyle(color: Colors.black),
+              /// 🔍 Destination Field with dropdown
+              TypeAheadField<Map<String, dynamic>>(
+                constraints: BoxConstraints(
+                    maxHeight: 400
                 ),
-              ),
-              const SizedBox(height: 16),
-              const Text("Time (optional)",
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: pickStartTime,
-                      icon: const Icon(Icons.access_time,
-                          size: 18, color: Colors.black),
-                      label: Text(
-                        startTime == null
-                            ? "Start time"
-                            : startTime!.format(context),
-                        style: const TextStyle(color: Colors.black),
-                      ),
+                suggestionsCallback: filterCities,
+                itemBuilder: (context, suggestion) =>  ListTile(
+                  hoverColor: Colors.black,
+                  focusColor: const Color(0xFFE4EDF2),
+                  tileColor: const Color(0xFFE4EDF2),
+                  title: Text(
+                    suggestion['name'],
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: pickEndTime,
-                      icon: const Icon(Icons.access_time,
-                          size: 18, color: Colors.black),
-                      label: Text(
-                        endTime == null ? "End time" : endTime!.format(context),
-                        style: const TextStyle(color: Colors.black),
+                ),
+                hideOnEmpty: true,
+                hideOnLoading: true,
+                hideOnUnfocus: true,
+                hideOnSelect: true,
+                hideWithKeyboard: true,
+                onSelected: (suggestion) {
+                  setState(() {
+                    selectedDest = suggestion['name'];
+                    selectedLat = suggestion['lat'];
+                    selectedLon = suggestion['lon'];
+                  });
+                  FocusScope.of(context).unfocus();
+                  print("destination $selectedDest");
+                },
+                builder: (context, controller , focusNode) {
+                  if (controller.text != selectedDest) {
+                    controller.text = selectedDest;
+                    focusNode.unfocus();
+                  }
+                  return TextField(
+                    controller: controller,
+                    cursorColor: Colors.black,
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      fillColor: Colors.transparent,
+                      isDense: true,
+                      labelText: 'Destination*',
+                      labelStyle: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
                       ),
+                      hintText: 'e.g. Paris, Goa',
+                      floatingLabelBehavior: FloatingLabelBehavior.always,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Colors.black),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Colors.black),
+                      ),
+                    ),
+                  );
+                },
+                decorationBuilder: (context, child) {
+                  return Material(
+                    color: const Color(0xFFE4EDF2),
+                    elevation: 4,
+                    borderRadius: BorderRadius.circular(8),
+                    child: child,
+                  );
+                },
+              ),
+
+              const SizedBox(height: 20),
+              const Text("Dates*", style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: pickStartDate,
+                    icon: const Icon(Icons.calendar_today,
+                        size: 18, color: Colors.black),
+                    label: Text(
+                      startDate == null
+                          ? "Start Date"
+                          : dateFormat.format(startDate!),
+                      style: const TextStyle(color: Colors.black),
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: pickEndDate,
+                    icon: const Icon(Icons.calendar_today,
+                        size: 18, color: Colors.black),
+                    label: Text(
+                      endDate == null ? "End Date" : dateFormat.format(endDate!),
+                      style: const TextStyle(color: Colors.black),
                     ),
                   ),
                 ],
               ),
-            ],
-
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30)),
-                ),
-                onPressed: _updateTrip,
-                child: const Text(
-                  "Update",
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30)),
+                  ),
+                  onPressed: _saveTrip,
+                  child: const Text(
+                    "Update",
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );

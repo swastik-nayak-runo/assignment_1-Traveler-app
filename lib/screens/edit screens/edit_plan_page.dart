@@ -1,6 +1,6 @@
 
 import 'package:assignment_1/screens/add_screen/widgets/custom_text_field.dart';
-import 'package:assignment_1/screens/trips/util/trip_detail_utils.dart'; // for PlanType enum + helpers if you have them
+import 'package:assignment_1/screens/trips/util/trip_detail_utils.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -46,7 +46,6 @@ class _EditPlanPageState extends State<EditPlanPage> {
   // ---- common date/time formatters ----
   final _dateFmt = DateFormat('dd-MM-yyyy');
 
-  // ---------- controllers / state for all possible fields ----------
   // Activity
   final _eventNameCtrl = TextEditingController();
   final _venueCtrl     = TextEditingController();
@@ -59,7 +58,8 @@ class _EditPlanPageState extends State<EditPlanPage> {
   TimeOfDay? _actEndTime;
 
   // Travel
-  String    _travelMode = 'flight'; // flight | train
+  String _travelMode = 'Flight'; // flight | train
+  String _travelJourneyType = 'Going';
   final _travelNameCtrl   = TextEditingController(); // airline/train name
   final _travelNumCtrl    = TextEditingController(); // flight#/train#
   final _travelSeatCtrl   = TextEditingController();
@@ -165,7 +165,8 @@ class _EditPlanPageState extends State<EditPlanPage> {
           break;
 
         case PlanType.travel:
-          _travelMode     = (data['modeOfTravel'] ?? 'flight') as String;
+          _travelMode     = (data['modeOfTravel'] ?? 'Flight') as String;
+          _travelJourneyType = (data['journeyType'] ?? 'Going') as String;
           _travelNameCtrl.text = (data['name'] ?? data['travelName'] ?? '') as String;
           _travelNumCtrl.text  = (data['travelNumber'] ?? '') as String;
           _travelSeatCtrl.text = (data['seatNumber'] ?? '') as String;
@@ -255,6 +256,7 @@ class _EditPlanPageState extends State<EditPlanPage> {
         }
         updateData = {
           'modeOfTravel': _travelMode,
+          'journeyType' : _travelJourneyType,
           'name': _travelNameCtrl.text.trim(),
           'travelNumber': _emptyToNull(_travelNumCtrl.text),
           'seatNumber': _emptyToNull(_travelSeatCtrl.text),
@@ -520,16 +522,30 @@ class _EditPlanPageState extends State<EditPlanPage> {
   Widget _buildTravelForm() {
     return _FormScroll(
       children: [
-        const Text('Mode of Travel*'),
+        const Text('Mode of Travel*', style: TextStyle(fontWeight: FontWeight.bold),),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: _travelMode,
           decoration: _dropdownDecoration(),
           items: const [
-            DropdownMenuItem(value: 'flight', child: Text('Flight')),
-            DropdownMenuItem(value: 'train',  child: Text('Train')),
+            DropdownMenuItem(value: 'Flight', child: Text('Flight')),
+            DropdownMenuItem(value: 'Train',  child: Text('Train')),
           ],
           onChanged: (v) => setState(() => _travelMode = v ?? 'flight'),
+          dropdownColor: Color(0xFFE4EDF2),
+        ),
+        const SizedBox(height: 16),
+        const Text('Journey Type*', style: TextStyle(fontWeight: FontWeight.bold),),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: _travelJourneyType,
+          decoration: _dropdownDecoration(),
+          items: const [
+            DropdownMenuItem(value: 'Going', child: Text('Going')),
+            DropdownMenuItem(value: 'Return',  child: Text('Return')),
+          ],
+          onChanged: (v) => setState(() => _travelJourneyType = v ?? 'flight'),
+          dropdownColor: Color(0xFFE4EDF2),
         ),
         const SizedBox(height: 16),
         CustomTextField(
@@ -779,9 +795,23 @@ class _EditPlanPageState extends State<EditPlanPage> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  InputDecoration _dropdownDecoration() => const InputDecoration(
-    border: OutlineInputBorder(),
+  InputDecoration _dropdownDecoration() => InputDecoration(
+    enabledBorder: OutlineInputBorder(
+      borderSide: const BorderSide(color: Colors.black), // black when not focused
+      borderRadius: BorderRadius.circular(10),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderSide: const BorderSide(color: Colors.black, width: 1.5), // black when focused
+      borderRadius: BorderRadius.circular(10),
+    ),
+    border: OutlineInputBorder(
+      borderSide: const BorderSide(color: Colors.black),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    fillColor: Colors.transparent,
+    filled: true,
     isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
   );
 
   String _fmtDateOrPick(DateTime? dt, String fallbackLabel) =>

@@ -14,7 +14,6 @@ class LoadingTabs extends StatelessWidget {
         ShimmerList(itemCount: 3, itemHeight: 92),
         ShimmerList(itemCount: 3, itemHeight: 92),
         ShimmerList(itemCount: 3, itemHeight: 92),
-        ShimmerList(itemCount: 3, itemHeight: 92),
       ],
     );
   }

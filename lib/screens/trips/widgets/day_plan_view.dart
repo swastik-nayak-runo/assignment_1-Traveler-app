@@ -1,3 +1,4 @@
+import 'package:assignment_1/screens/add_screen/add_plan_page.dart';
 import 'package:assignment_1/screens/edit%20screens/edit_plan_page.dart';
 import 'package:assignment_1/screens/trips/trips_plan_provider.dart';
 import 'package:assignment_1/screens/trips/util/trip_detail_utils.dart';
@@ -18,25 +19,20 @@ class DayPlansView extends StatefulWidget {
 
 class _DayPlansViewState extends State<DayPlansView> {
   Future<void> _deletePlan(
-    BuildContext context,
-    TripPlansProvider provider,
-    NormalizedPlan plan,
-  ) async {
+      BuildContext context,
+      TripPlansProvider provider,
+      NormalizedPlan plan,
+      ) async {
     final label = _labelForPlanType(plan.type);
-
-    // Confirm
     final confirmed = await showConfirmDeleteDialog(context, plan.title, label);
     if (confirmed != true) return;
 
-    // Delete via provider
     final ok = await provider.deletePlan(plan.type, plan.id);
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          ok ? '$label deleted' : 'Failed to delete $label',
-        ),
+        content: Text(ok ? '$label deleted' : 'Failed to delete $label'),
       ),
     );
   }
@@ -46,96 +42,108 @@ class _DayPlansViewState extends State<DayPlansView> {
     final provider = context.watch<TripPlansProvider>();
 
     if (provider.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.black),
-      );
+      return const Center(child: CircularProgressIndicator(color: Colors.black));
     }
 
     final allPlans = provider.plans;
     final d = DateTime(widget.date.year, widget.date.month, widget.date.day);
 
-    // Plans valid for this day
     final dayPlans = allPlans
         .where((p) => !d.isBefore(p.startDay) && !d.isAfter(p.endDay))
         .toList();
 
-    if (dayPlans.isEmpty) {
-      final dateLabel = DateFormat('EEEE, MMM d, yyyy').format(widget.date);
-      return Center(
+    final dateLabel = DateFormat('EEEE, MMM d, yyyy').format(widget.date);
+
+    return Scaffold(
+      floatingActionButton: SizedBox(
+        width: 70,
+        height: 70,
+        child: FloatingActionButton(
+          backgroundColor: Colors.black,
+          onPressed: () async {
+            final updated = await Navigator.of(context).push<bool>(
+              MaterialPageRoute(
+                builder: (_) => AddPlanPage(
+                  tripId: provider.tripId,
+                  defaultDate: widget.date,
+                ),
+              ),
+            );
+            if (updated == true) provider.fetchPlans();
+          },
+          child: const Icon(Icons.add, size: 36, color: Colors.white),
+        ),
+      ),
+
+      body: dayPlans.isEmpty
+          ? Center(
         child: Text(
           'No plans for $dateLabel',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.titleMedium,
         ),
-      );
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: dayPlans.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, i) {
-        final p = dayPlans[i];
-        return Card(
-          margin: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          color: Colors.black87, // match your trip cards
-          child: ListTile(
-            onTap: () => showPlanDetailsDialog(context, p, provider.tripId),
-            leading: Icon(p.icon, color: Colors.white),
-            title: Text(
-              p.title,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white),
+      )
+          : ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: dayPlans.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, i) {
+          final p = dayPlans[i];
+          return Card(
+            margin: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-            subtitle: Text(
-              p.subtitle ?? '',
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white70),
-            ),
-            trailing: SizedBox(
-              width: 100,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  // DELETE
-                  IconButton(
-                    onPressed: () => _deletePlan(context, provider, p),
-                    icon: const Icon(Icons.delete_outline, color: Colors.white),
-                  ),
-                  // EDIT
-                  IconButton(
-                    onPressed: () async {
-                      final updated = await Navigator.of(context)
-                          .push(
-                        MaterialPageRoute(
-                          builder: (context) =>
-                            EditPlanPage(
+            color: Colors.black87,
+            child: ListTile(
+              onTap: () => showPlanDetailsDialog(context, p, provider.tripId),
+              leading: Icon(p.icon, color: Colors.white),
+              title: Text(
+                p.title,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white),
+              ),
+              subtitle: Text(
+                p.subtitle ?? '',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white70),
+              ),
+              trailing: SizedBox(
+                width: 100,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      onPressed: () => _deletePlan(context, provider, p),
+                      icon: const Icon(Icons.delete_outline, color: Colors.white),
+                    ),
+                    IconButton(
+                      onPressed: () async {
+                        final updated = await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => EditPlanPage(
                               tripId: provider.tripId,
                               planId: p.id,
                               planType: p.type,
                               userId: provider.userId,
-                            )
-
-                        ),
-                      );
-                      if (updated == true) {
-                        provider.fetchPlans(); // refresh list after edit
-                      }
-                    },
-                    icon: const Icon(Icons.edit_outlined, color: Colors.white),
-                  ),
-                ],
+                            ),
+                          ),
+                        );
+                        if (updated == true) provider.fetchPlans();
+                      },
+                      icon: const Icon(Icons.edit_outlined, color: Colors.white),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
+
 
 String _labelForPlanType(PlanType type) {
   switch (type) {

@@ -14,7 +14,6 @@ class ErrorTabs extends StatelessWidget {
         _ErrorState(error: error),
         _ErrorState(error: error),
         _ErrorState(error: error),
-        _ErrorState(error: error),
       ],
     );
   }

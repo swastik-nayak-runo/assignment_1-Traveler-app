@@ -1,6 +1,7 @@
 import 'package:assignment_1/screens/add_screen/widgets/custom_text_field.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class RestaurantPlansTab extends StatefulWidget {
   final CollectionReference<Map<String, dynamic>> ref;
@@ -23,6 +24,7 @@ class RestaurantPlansTab extends StatefulWidget {
 class RestaurantPlansTabState extends State<RestaurantPlansTab> {
   final _formKey = GlobalKey<FormState>();
 
+  final DateFormat dateFormat = DateFormat('dd-MM-yyyy');
   final TextEditingController restaurantNameController =
       TextEditingController();
   final TextEditingController addressController = TextEditingController();
@@ -66,7 +68,7 @@ class RestaurantPlansTabState extends State<RestaurantPlansTab> {
       );
       return;
     }
-    if (selectedMealType.toString().trim().isEmpty) {
+    if (selectedMealType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select the meal type")),
       );
@@ -120,6 +122,7 @@ class RestaurantPlansTabState extends State<RestaurantPlansTab> {
         'startTime': '${reservationTime!.hour}:${reservationTime!.minute}',
         'endTime': '${endDateTime.hour}:${endDateTime.minute}',
         'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -207,7 +210,7 @@ class RestaurantPlansTabState extends State<RestaurantPlansTab> {
                     child: Text(
                       reservationDate == null
                           ? "Select Date"
-                          : reservationDate!.toString().split(' ')[0],
+                          :  dateFormat.format(reservationDate!),
                       style: const TextStyle(color: Colors.black),
                     ),
                   ),
@@ -247,6 +250,7 @@ class RestaurantPlansTabState extends State<RestaurantPlansTab> {
                   },
                   child: const Text(
                     "Reservation Confirmed (optional)",
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               ],

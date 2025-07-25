@@ -1,6 +1,7 @@
 import 'package:assignment_1/widgets/custome_shimmer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key});
@@ -20,7 +21,7 @@ class HomeHeader extends StatelessWidget {
       future: getUserData(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const HomeHeaderShimmer(); // <-- Use shimmer
+          return const HomeHeaderShimmer();
         }
 
         if (!snapshot.hasData) {
@@ -34,46 +35,61 @@ class HomeHeader extends StatelessWidget {
         final firstName = userData['firstName'] ?? '';
         final lastName = userData['lastName'] ?? '';
         final address = userData['address'] ?? '';
+        final now = DateTime.now();
+        final formattedDate = DateFormat('EEE, MMM d').format(now);
 
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        return Container(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Row(
             children: [
+
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '$firstName $lastName',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyLarge
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      'Hello, $firstName!',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                      ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
                         Icon(Icons.location_on,
                             size: 16, color: Colors.grey.shade700),
                         const SizedBox(width: 4),
-                        SizedBox(
+                        Expanded(
                           child: Text(
                             address,
-                            style: TextStyle(color: Colors.black),
+                            style: const TextStyle(color: Colors.black),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        Icon(Icons.keyboard_arrow_down,
-                            size: 18, color: Colors.grey.shade700),
                       ],
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      formattedDate,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    )
                   ],
                 ),
               ),
-              IconButton(
-                  icon: const Icon(Icons.notifications, size: 30),
-                  onPressed: () {})
+              const CircleAvatar(
+                radius: 26,
+                backgroundColor: Colors.black,
+                child: Icon(Icons.person, color: Colors.white),
+              ),
+
             ],
           ),
         );
@@ -87,30 +103,37 @@ class HomeHeaderShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return  Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      child: Row(
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const  Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                 CustomShimmer(width: 120, height: 18), // Name shimmer
-                 SizedBox(height: 8),
+                CustomShimmer(width: 100, height: 16), // Name shimmer
+                SizedBox(height: 8),
                 Row(
-                  children:  [
+                  children: [
                     CustomShimmer(width: 16, height: 16, borderRadius: 4),
-                    SizedBox(width: 8),
-                    CustomShimmer(width: 100, height: 14), // Address shimmer
+                    SizedBox(width: 6),
+                    CustomShimmer(width: 120, height: 14), // Address shimmer
                   ],
                 ),
+                SizedBox(height: 8),
+                CustomShimmer(width: 80, height: 12), // Date shimmer
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.notifications, size: 30),
-            onPressed: () {},
-          )
+          CustomShimmer(
+            width: 52,
+            height: 52,
+            borderRadius: 26,
+          ),
         ],
       ),
     );

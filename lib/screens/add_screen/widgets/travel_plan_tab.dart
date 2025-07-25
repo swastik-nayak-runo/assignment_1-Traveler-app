@@ -1,12 +1,18 @@
 import 'package:assignment_1/screens/add_screen/widgets/custom_text_field.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class TravelPlansTab extends StatefulWidget {
   final CollectionReference<Map<String, dynamic>> ref;
+  final DateTime planDate;
   final VoidCallback? onPLanSaved;
 
-  const TravelPlansTab({required this.ref, this.onPLanSaved});
+  const TravelPlansTab({
+    required this.ref,
+    this.onPLanSaved,
+    required this.planDate,
+  });
 
   @override
   State<TravelPlansTab> createState() => TravelPlansTabState();
@@ -15,52 +21,23 @@ class TravelPlansTab extends StatefulWidget {
 class TravelPlansTabState extends State<TravelPlansTab> {
   final _formKey = GlobalKey<FormState>();
 
+
   final TextEditingController nameController = TextEditingController();
   final TextEditingController numberController = TextEditingController();
   final TextEditingController seatController = TextEditingController();
-  final TextEditingController sourceController = TextEditingController();
-  final TextEditingController destinationController = TextEditingController();
+  final TextEditingController stationController = TextEditingController();
 
-  String modeOfTravel = "Flight"; // default selection
-  DateTime? departureDate;
-  DateTime? arrivalDate;
-  TimeOfDay? departureTime;
-  TimeOfDay? arrivalTime;
+  String modeOfTravel = "Flight";
+  String journeyType = "Departure";
+  TimeOfDay? time;
 
-  Future<void> pickDepartureDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) setState(() => departureDate = picked);
-  }
 
-  Future<void> pickArrivalDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) setState(() => arrivalDate = picked);
-  }
-
-  Future<void> pickDepartureTime() async {
+  Future<void> pickTime() async {
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
     );
-    if (picked != null) setState(() => departureTime = picked);
-  }
-
-  Future<void> pickArrivalTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    if (picked != null) setState(() => arrivalTime = picked);
+    if (picked != null) setState(() => time = picked);
   }
 
   Future<void> saveTravelPlan() async {
@@ -71,9 +48,16 @@ class TravelPlansTabState extends State<TravelPlansTab> {
       return;
     }
 
+    if (time == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar( SnackBar(content: Text("Select $journeyType time")));
+      return;
+    }
+
     try {
       await widget.ref.add({
         'modeOfTravel': modeOfTravel,
+        'journeyType': journeyType,
         'name': nameController.text.trim(),
         'number': numberController.text.trim().isNotEmpty
             ? numberController.text.trim()
@@ -81,22 +65,11 @@ class TravelPlansTabState extends State<TravelPlansTab> {
         'seat': seatController.text.trim().isNotEmpty
             ? seatController.text.trim()
             : null,
-        'source': sourceController.text.trim().isNotEmpty
-            ? sourceController.text.trim()
+        'station': stationController.text.trim().isNotEmpty
+            ? stationController.text.trim()
             : null,
-        'destination': destinationController.text.trim().isNotEmpty
-            ? destinationController.text.trim()
-            : null,
-        'departureDate':
-            departureDate != null ? Timestamp.fromDate(departureDate!) : null,
-        'departureTime': departureTime != null
-            ? '${departureTime!.hour}:${departureTime!.minute}'
-            : null,
-        'arrivalDate':
-            arrivalDate != null ? Timestamp.fromDate(arrivalDate!) : null,
-        'arrivalTime': arrivalTime != null
-            ? '${arrivalTime!.hour}:${arrivalTime!.minute}'
-            : null,
+        'planDate': Timestamp.fromDate(widget.planDate),
+        'time': '${time!.hour}:${time!.minute}',
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -108,14 +81,10 @@ class TravelPlansTabState extends State<TravelPlansTab> {
       _formKey.currentState?.reset();
       setState(() {
         modeOfTravel = "Flight";
-        departureDate = null;
-        arrivalDate = null;
-        departureTime = null;
-        arrivalTime = null;
+        time = null;
       });
 
       Navigator.of(context).pop(true);
-
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: $e")),
@@ -137,7 +106,9 @@ class TravelPlansTabState extends State<TravelPlansTab> {
               style:
                   TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 5,),
+            SizedBox(
+              height: 5,
+            ),
             DropdownButtonFormField<String>(
               value: modeOfTravel,
               decoration: const InputDecoration(
@@ -153,13 +124,67 @@ class TravelPlansTabState extends State<TravelPlansTab> {
                   ),
                 ),
               ),
+              dropdownColor: Color(0xFFE4EDF2),
               items: const [
                 DropdownMenuItem(value: "Flight", child: Text("Flight")),
                 DropdownMenuItem(value: "Train", child: Text("Train")),
               ],
               onChanged: (val) => setState(() => modeOfTravel = val!),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+            const Text(
+              "Journey Type*",
+              style:
+                  TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(
+              height: 5,
+            ),
+            DropdownButtonFormField<String>(
+              value: journeyType,
+              decoration: const InputDecoration(
+                fillColor: Colors.transparent,
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: Colors.black,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              dropdownColor: Color(0xFFE4EDF2),
+              items: const [
+                DropdownMenuItem(value: "Departure", child: Text("Departure")),
+                DropdownMenuItem(value: "Arrival", child: Text("Arrival")),
+              ],
+              onChanged: (val) => setState(() => journeyType = val!),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "${journeyType} Time*",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: pickTime,
+                    child: Text(
+                      time == null
+                          ? "$journeyType Time"
+                          : time!.format(context),
+                      style: TextStyle(color: Colors.black),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(
+              height: 16,
+            ),
             CustomTextField(
               controller: nameController,
               hintText: 'e.g., Air India 101',
@@ -169,90 +194,25 @@ class TravelPlansTabState extends State<TravelPlansTab> {
             const SizedBox(height: 16),
             CustomTextField(
               controller: numberController,
-              hintText: 'Flight/Train number (optional)',
+              hintText: 'Flight/Train number',
               showLabel: true,
-              labelText: 'Number (optional)',
-            ),
-            const SizedBox(height: 16),
-            const Text("Departure (optional)"),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: pickDepartureDate,
-                    child: Text(
-                      departureDate == null
-                          ? "Departure Date"
-                          : departureDate!.toString().split(' ')[0],
-                      style: TextStyle(color: Colors.black),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: pickDepartureTime,
-                    child: Text(
-                      departureTime == null
-                          ? "Departure Time"
-                          : departureTime!.format(context),
-                      style: TextStyle(color: Colors.black),
-                    ),
-                  ),
-                ),
-              ],
+              labelText: 'Train Number (optional)',
             ),
             const SizedBox(height: 16),
             CustomTextField(
-              controller: sourceController,
-              hintText: 'Source Station / Airport (optional)',
+              controller: stationController,
+              hintText: 'Station / Airport',
               showLabel: true,
-              labelText: 'Source (optional)',
+              labelText: '$journeyType Station / Airport (optional)',
             ),
             const SizedBox(height: 16),
             CustomTextField(
               controller: seatController,
-              hintText: 'Seat Number (optional)',
+              hintText: 'Seat Number',
               showLabel: true,
               labelText: 'Seat Number (optional)',
             ),
-            const SizedBox(height: 16),
-            const Text("Arrival (optional)"),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: pickArrivalDate,
-                    child: Text(
-                      arrivalDate == null
-                          ? "Arrival Date"
-                          : arrivalDate!.toString().split(' ')[0],
-                      style: TextStyle(color: Colors.black),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: pickArrivalTime,
-                    child: Text(
-                      arrivalTime == null
-                          ? "Arrival Time"
-                          : arrivalTime!.format(context),
-                      style: TextStyle(color: Colors.black),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            CustomTextField(
-              controller: destinationController,
-              hintText: 'Destination Station / Airport (optional)',
-              showLabel: true,
-              labelText: 'Destination (optional)',
-            ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
